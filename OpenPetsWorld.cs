@@ -1,10 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System.Drawing;
-using System.Linq;
 using System.Reflection;
-using static 班级小爱莉.Program;
+using static OpenPetsWorld.Program;
 
-namespace 班级小爱莉
+namespace OpenPetsWorld
 {
     internal class OpenPetsWorld
     {

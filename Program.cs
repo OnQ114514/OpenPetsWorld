@@ -1,5 +1,5 @@
-﻿using Mirai.Net.Data.Messages;
-using Mirai.Net.Data.Messages.Concretes;
+﻿using Mirai.Net.Data.Events.Concretes.Message;
+using Mirai.Net.Data.Messages;
 using Mirai.Net.Data.Messages.Receivers;
 using Mirai.Net.Sessions;
 using Mirai.Net.Sessions.Http.Managers;
@@ -9,10 +9,10 @@ using System.Drawing.Imaging;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using System.Timers;
-using static 班级小爱莉.OpenPetsWorld;
+using static OpenPetsWorld.OpenPetsWorld;
 using Timer = System.Timers.Timer;
 
-namespace 班级小爱莉
+namespace OpenPetsWorld
 {
     internal class Program
     {
@@ -89,7 +89,7 @@ namespace 班级小爱莉
                     QQ = QQNumber,
                     VerifyKey = VerifyKey
                 };
-                Console.WriteLine("正在连接");
+                Console.WriteLine("正在连接Mirai");
                 await bot.LaunchAsync();
             }
             catch (Exception e)
@@ -100,7 +100,7 @@ namespace 班级小爱莉
             }
             #endregion            
 
-            Console.WriteLine("班级小爱莉已连接！");
+            Console.WriteLine("OpenPetsWorld已连接！");
 
             #region WriteConfig
             if (!File.Exists("./config.txt"))
@@ -432,13 +432,18 @@ namespace 班级小爱莉
                                     PlayersData[MemberId].BagItems[item.Id]++;
                                     SendMessage(GroupId, $"已给予{ItemName}");
                                 }
-                                if (ByAite(OriginalMess))
-                                {
-                                    SendMessage(GroupId, "嗨~想我了吗？无论何时何地，爱莉希雅都会回应你的期待");
-                                }
                                 break;
                         }
                     }
+                });
+
+            bot.EventReceived
+                .OfType<AtEvent>()
+                .Where(receiver => RunGroupId.Contains(receiver.Receiver.GroupId))
+                .Subscribe(receiver =>
+                {
+                    string GroupId = receiver.Receiver.GroupId;
+                    SendMessage(GroupId, "嗨~想我了吗？无论何时何地，爱莉希雅都会回应你的期待");
                 });
 
             SetConsoleCtrlHandler(cancelHandler, true);
@@ -458,16 +463,22 @@ namespace 班级小爱莉
                         SaveData();
                         KeysExit();
                         return;
-                    case "/!stop":
+                    case "/stop!":
                         return;
                     case "/help":
-                        Console.WriteLine("——————帮助菜单——————\r\n" +
-                            "/clearconfig 清除配置文件\r\n" +
-                            "/stop 退出程序\r\n" +
-                            "/AddGroup {群号} 添加群\r\n" +
-                            "/DelGroup {群号} 删除群");
+                        Console.WriteLine("——————帮助菜单——————\n" +
+                            "/clearconfig 清除配置文件\n" +
+                            "/stop 退出程序\n" +
+                            "/stop! 不保存数据退出\n" +
+                            "/AddGroup {群号} 添加群\n" +
+                            "/DelGroup {群号} 删除群\n" +
+                            "/GroupList 列出所有已添加群");
+                        break;
+                    case "/GroupList":
+                        Console.WriteLine(string.Join("\n", RunGroupId));
                         break;
                     case "":
+                    case "^C":
                         break;
                     default:
                         if (UserWrite == null)
@@ -543,17 +554,6 @@ namespace 班级小爱莉
                 "VerifyKey=" + VerifyKey,
                 "RunGroupId=" + string.Join( ',', RunGroupId)
             });
-        }
-
-        static bool ByAite(MessageChain UserMess)
-        {
-            foreach (var messageBase in from MessageBase messageBase in UserMess
-                                        where messageBase.Type == Messages.At
-                                        select messageBase)
-            {
-                return ((AtMessage)messageBase).Target == QQNumber;
-            }
-            return false;
         }
 
         #region 发送消息
