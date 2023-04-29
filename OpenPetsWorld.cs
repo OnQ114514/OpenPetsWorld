@@ -1,7 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using System.CodeDom;
+using Newtonsoft.Json;
 using System.Drawing;
-using Newtonsoft.Json.Linq;
+using Mirai.Net.Data.Messages.Receivers;
+using Mirai.Net.Data.Shared;
 using static OpenPetsWorld.Program;
+using File = System.IO.File;
 
 namespace OpenPetsWorld
 {
@@ -20,6 +23,7 @@ namespace OpenPetsWorld
         public static Dictionary<string, Dictionary<string, PlayerData>> PlayersData = new();
         public static Dictionary<int, Item> Items = new();
         public static List<PetData> petPool = new();
+        public static List<Replica> Replicas = new();
 
         public static void UseItemEvent(string GroupId, string MemberId, Item item, int count)
         {
@@ -40,22 +44,25 @@ namespace OpenPetsWorld
                     if (petData.Health == 0)
                     {
                         int ResHealth;
-                        switch (item.Mode)
+                        Resurrection resurrection = (Resurrection)item;
+                        switch (resurrection.Mode)
                         {
                             case 0:
                                 petData.Health =
-                                    (int)(petData.MaxHealth < item.Health ? petData.MaxHealth : item.Health);
+                                    (int)(petData.MaxHealth < resurrection.Health
+                                        ? petData.MaxHealth
+                                        : resurrection.Health);
                                 petData.RectOverflow();
                                 ResHealth = petData.Health;
                                 break;
                             case 1:
-                                ResHealth = petData.Health = (int)Math.Round(petData.MaxHealth * item.Health);
+                                ResHealth = petData.Health = (int)Math.Round(petData.MaxHealth * resurrection.Health);
                                 break;
                             case 2:
                                 ResHealth = petData.Health = petData.MaxHealth;
                                 break;
                             default:
-                                throw new Exception($"恢复模式异常，模式为{item.Mode}，物品Id为{item.Id}");
+                                throw new Exception($"恢复模式异常，模式为{resurrection.Mode}，物品Id为{resurrection.Id}");
                         }
 
                         count = 1;
@@ -70,6 +77,7 @@ namespace OpenPetsWorld
                     break;
                 case 3:
                 {
+                    Recovery recovery = (Recovery)item;
                     if (!HavePet(GroupId, MemberId, out petData))
                     {
                         return;
@@ -85,15 +93,15 @@ namespace OpenPetsWorld
                     {
                         int OriginHealth = petData.Health;
                         int ResHealth;
-                        switch (item.Mode)
+                        switch (recovery.Mode)
                         {
                             case 0:
-                                petData.Health += (int)item.Health * count;
+                                petData.Health += (int)recovery.Health * count;
                                 petData.RectOverflow();
                                 ResHealth = petData.Health - OriginHealth;
                                 break;
                             case 1:
-                                petData.Health += (int)Math.Round(petData.MaxHealth * item.Health) * count;
+                                petData.Health += (int)Math.Round(petData.MaxHealth * recovery.Health) * count;
                                 ;
                                 ResHealth = petData.Health - OriginHealth;
                                 break;
@@ -103,10 +111,10 @@ namespace OpenPetsWorld
                                 count = 1;
                                 break;
                             default:
-                                throw new Exception($"恢复模式异常，模式为{item.Mode}，物品Id为{item.Id}");
+                                throw new Exception($"恢复模式异常，模式为{recovery.Mode}，物品Id为{recovery.Id}");
                         }
 
-                        SendAtMessage(GroupId, MemberId, $"成功使用【{item.Name}】×{count}，将宠物成功复活!\n◇回复血量：{ResHealth}");
+                        SendAtMessage(GroupId, MemberId, $"成功使用【{recovery.Name}】×{count}，将宠物成功复活!\n◇回复血量：{ResHealth}");
                     }
                     else
                     {
@@ -154,6 +162,11 @@ namespace OpenPetsWorld
             }
 
             return PlayersData[GroupId][MemberId];
+        }
+
+        public static PlayerData Register(GroupMessageReceiver x)
+        {
+            return Register(x.GroupId, x.Sender.Id);
         }
 
         public static bool HavePet(string GroupId, string MemberId, bool Send = true)
@@ -208,6 +221,20 @@ namespace OpenPetsWorld
             return item;
         }
 
+        public static Replica? FindReplica(string ReplicaName)
+        {
+            Replica? replica = null;
+            foreach (var LReplica in from LReplica in Replicas
+                     where LReplica.Name == ReplicaName
+                     select LReplica)
+            {
+                replica = LReplica;
+                break;
+            }
+
+            return replica;
+        }
+
         #region 读写数据文件
 
         public static void ReadData()
@@ -244,6 +271,20 @@ namespace OpenPetsWorld
             if (LPetPool != null)
             {
                 petPool = (List<PetData>)LPetPool;
+            }
+
+            #endregion
+
+            #region 副本数据
+
+            string ReplicaPath = "./datapack/replicas.json";
+            if (File.Exists(ReplicaPath))
+            {
+                var LReplicaData = TRead<List<Replica>>(ReplicaPath);
+                if (LReplicaData != null)
+                {
+                    Replicas = (List<Replica>)LReplicaData;
+                }
             }
 
             #endregion
@@ -338,7 +379,7 @@ namespace OpenPetsWorld
             public PetData? pet;
 
             public int ActivityCD = 0;
-            
+
             public void EnergyAdd()
             {
                 if (pet != null && pet.Energy < pet.MaxEnergy)
@@ -421,6 +462,11 @@ namespace OpenPetsWorld
                 {
                     Health = MaxHealth;
                 }
+
+                if (Health < 0)
+                {
+                    Health = 0;
+                }
             }
 
             public static PetData Extract()
@@ -432,55 +478,81 @@ namespace OpenPetsWorld
             public int Damage(PetData myPet)
             {
                 return (myPet.Attack + myPet.Intellect * 20) *
-                    (1 - (Defense * Intellect * 20) / (Attack + Defense + Health / 10 + Intellect * 20));
+                       (1 - (Defense * Intellect * 20) / (Attack + Defense + Health / 10 + Intellect * 20));
             }
         }
 
         #region 物品类
 
+        /// <summary>
+        /// 物品基类（材料）
+        /// </summary>
         public class Item
         {
             public int Id = 0;
             public string Name = "无";
             public int ItemType = 0;
+            public string? infoText;
+            public string? infoImagePath;
+            public int Level = 0;
+        }
+
+        /// <summary>
+        /// 神器
+        /// </summary>
+        public class Artifact : Item
+        {
             public int Attack = 0;
             public int Defense = 0;
             public int Energy = 0;
             public int Intellect = 0;
-            public double Health = 0;
-            public int Level = 0;
+            public int Health = 0;
 
-            /// <summary>
-            /// (回血)0增加，1为增加到上限的百分之几，2回满
-            /// (复活)0为回复至某值，1为回复到上限的百分之几，2回满
-            /// </summary>
-            public int Mode = 0;
-        }
-
-        public class Artifact : Item
-        {
             public Artifact()
             {
                 ItemType = 1;
             }
         }
 
+        /// <summary>
+        /// 复活
+        /// </summary>
         public class Resurrection : Item
         {
+            /// <summary>
+            /// 0为回复至某值，1为回复到上限的百分之几，2回满
+            /// </summary>
+            public int Mode = 0;
+
+            public double Health = 0;
+
             public Resurrection()
             {
                 ItemType = 2;
             }
         }
 
+        /// <summary>
+        /// 恢复
+        /// </summary>
         public class Recovery : Item
         {
+            public double Health = 0;
+
+            /// <summary>
+            /// 0增加，1为增加到上限的百分之几，2回满
+            /// </summary>
+            public int Mode = 0;
+
             public Recovery()
             {
                 ItemType = 3;
             }
         }
 
+        /// <summary>
+        /// 增益
+        /// </summary>
         public class Gain : Item
         {
             public Gain()
@@ -494,7 +566,7 @@ namespace OpenPetsWorld
         public class Replica
         {
             public int Level = 0;
-            public string name;
+            public string Name;
             public Dictionary<int, int> RewardingItems = new();
             public int RewardingPoint = 0;
             public string enemyName;
@@ -522,7 +594,7 @@ namespace OpenPetsWorld
                         player.BagItems[item.Key] += item.Value;
                     }
                 }
-                
+
                 return true;
             }
         }

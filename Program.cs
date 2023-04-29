@@ -8,8 +8,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
-using System.CodeDom.Compiler;
 using System.Timers;
+using Manganese.Text;
 using Newtonsoft.Json;
 using static OpenPetsWorld.OpenPetsWorld;
 using Timer = System.Timers.Timer;
@@ -44,6 +44,7 @@ namespace OpenPetsWorld
         const string MasterId = "58554566";
         static readonly HttpClient httpClient = new();
         public static readonly Random random = new();
+        private static readonly Logger log = new();
 
         static async Task Main(string[] args)
         {
@@ -99,7 +100,7 @@ namespace OpenPetsWorld
                     QQ = QQNumber,
                     VerifyKey = VerifyKey
                 };
-                Console.WriteLine("正在连接Mirai");
+                log.Info("正在连接Mirai");
                 await bot.LaunchAsync();
             }
             catch (Exception e)
@@ -111,7 +112,7 @@ namespace OpenPetsWorld
 
             #endregion
 
-            Console.WriteLine("OpenPetsWorld已连接！");
+            log.Info("已连接至Mirai");
 
             #region WriteConfig
 
@@ -122,6 +123,57 @@ namespace OpenPetsWorld
 
             #endregion
 
+#if DEBUG
+            if (!File.Exists("./datapack/PetPool.json"))
+            {
+                List<PetData> Pool = new()
+                {
+                    new(),
+                    new(),
+                    new()
+                };
+                File.WriteAllText("./datapack/PetPool.json", Pool.ToJsonString());
+                log.Info("测试宠物池已生成");
+            }
+
+            if (!File.Exists("./datapack/replicas.json"))
+            {
+                List<Replica> replicas = new()
+                {
+                    new()
+                    {
+                        Name = "测试副本",
+                        enemyName = "测试敌人",
+                        RewardingPoint = 1145,
+                        enemyAttack = 1,
+                        RewardingItems = new()
+                        {
+                            { 1, 1 }
+                        }
+                    }
+                };
+                File.WriteAllText("./datapack/replicas.json", replicas.ToJsonString());
+                log.Info("测试副本已生成");
+            }
+
+            if (!File.Exists("./datapack/Items.json"))
+            {
+                Dictionary<int, Item> LItems = new()
+                {
+                    {
+                        1, new()
+                        {
+                            Name = "测试材料",
+                            Id = 1
+                        }
+                    }
+                };
+                File.WriteAllText("./datapack/Items.json", LItems.ToJsonString());
+                log.Info("测试物品已生成");
+            }
+
+#endif
+
             ReadData();
             Timer timer = new(60000)
             {
@@ -130,17 +182,6 @@ namespace OpenPetsWorld
             };
             timer.Elapsed += EnergyRecovery;
 
-#if DEBUG
-            if (!File.Exists("./datapack/PetPool.json"))
-            {
-                List<PetData> Pool = new()
-                {
-                    new PetData()
-                };
-                File.WriteAllText("./datapack/PetPool.json", JsonConvert.SerializeObject(Pool));
-            }
-#endif
-            
             bot.MessageReceived
                 .OfType<GroupMessageReceiver>()
                 .Where(x => RunGroupId.Contains(x.GroupId))
@@ -156,18 +197,17 @@ namespace OpenPetsWorld
                     {
                         case "宠物世界":
                         {
-                            Image menu;
-                            try
+                            string menuPath = "./datapack/menu.png";
+
+                            if (!File.Exists(menuPath))
                             {
-                                menu = Image.FromFile("./datapack/menu.png");
-                            }
-                            catch
-                            {
-                                Console.WriteLine("错误:菜单图片不存在");
+                                log.Warn("菜单图片不存在");
                                 break;
                             }
 
-                            await x.SendMessageAsync(new MessageChainBuilder().ImageFromBase64(ToBase64(menu)).Build());
+                            string fullPath = Path.GetFullPath(menuPath);
+
+                            await x.SendMessageAsync(new MessageChainBuilder().ImageFromPath(fullPath).Build());
                             break;
                         }
                         case "我的宠物":
@@ -185,8 +225,8 @@ namespace OpenPetsWorld
                                 }
                                 catch
                                 {
-                                    Console.WriteLine("错误:未找到图片或绘制错误，请检查数据包是否完整");
-                                    throw;
+                                    log.Error("绘制宠物图片时未找到图片或绘制错误");
+                                    break;
                                 }
 
                                 string[] AbTexts =
@@ -255,6 +295,7 @@ namespace OpenPetsWorld
                                     Console.WriteLine(e);
                                     break;
                                 }
+
                                 playerData.pet = petData;
                                 PlayersData[GroupId][MemberId] = playerData;
                                 x.SendAtMessage($"恭喜您砸到了一颗{petData.PetAttribute}属性的宠物蛋");
@@ -513,49 +554,34 @@ namespace OpenPetsWorld
                             SendBmpMessage(GroupId, ImageData);
                             break;
                         }
-                        case "宠物副本":
-                        {
-                            /*Bitmap bitmap = new(480, 640);
-                            Graphics graphics = new(bitmap);
-                            graphics.Fill(Brushes.White, bitmap);
-                            graphics.DrawLine(Color.Black, 3, 55);
-                            for ()
-                            {
-                                graphics.DrawText();
-                            }*/
-                            break;
-                        }
-
                         default:
                             if (StrMess.StartsWith("使用"))
                             {
                                 string ItemName = StrMess[2..];
-                                int count = ItemName.IndexOf("*", StringComparison.Ordinal) + 1;
-                                int UseCount;
+                                int count = ItemName.GetCount(ref ItemName);
                                 PlayerData playerData = Register(GroupId, MemberId);
                                 Item? item;
 
-                                if (count == 0)
+                                if (count != -1)
                                 {
-                                    UseCount = 1;
-                                    item = FindItem(ItemName);
-                                }
-                                else
-                                {
-                                    if (!int.TryParse(ItemName[count..], out UseCount))
+                                    if (count == 0)
                                     {
                                         x.SendAtMessage("格式错误！");
                                         break;
                                     }
 
-                                    if (UseCount > 99999)
+                                    if (count > 99999)
                                     {
                                         x.SendAtMessage("数量超出范围！");
                                         break;
                                     }
-
-                                    item = FindItem(ItemName[..(count - 1)]);
+                                    item = FindItem(ItemName[..count]);
                                 }
+                                else
+                                {
+                                    item = FindItem(ItemName);
+                                }
+
 
                                 if (item == null)
                                 {
@@ -569,13 +595,53 @@ namespace OpenPetsWorld
                                     PlayersData[GroupId][MemberId] = playerData;
                                 }
 
-                                if (playerData.BagItems[item.Id] < UseCount)
+                                if (playerData.BagItems[item.Id] < count)
                                 {
-                                    x.SendAtMessage($"你的背包中【{ItemName}】不足{UseCount}个！");
+                                    x.SendAtMessage($"你的背包中【{ItemName}】不足{count}个！");
                                     break;
                                 }
 
-                                UseItemEvent(GroupId, MemberId, item, UseCount);
+                                UseItemEvent(GroupId, MemberId, item, count);
+                            }
+                            else if (StrMess.StartsWith("宠物副本"))
+                            {
+                                int index = StrMess[4..].GetCount("");
+                                if (index == -1)
+                                {
+                                    index = 0;
+                                }
+                                List<string> ReplicasString =
+                                    Replicas.ConvertAll(replica => $"● {replica.Name} LV > {replica.Level}");
+                                Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
+                                Bitmap bitmap = new(480, 640);
+                                Graphics graphics = Graphics.FromImage(bitmap);
+                                graphics.Fill(Brushes.White, bitmap);
+                                graphics.DrawString("当前开放副本如下：", font, Brushes.Black, 5, 5);
+                                graphics.DrawLine(new Pen(Color.Black, 3), 0, 60, 480, 60);
+                                graphics.DrawLine(new Pen(Color.Black, 3), 0, 498, 235, 498);
+                                int n = 55;
+                                foreach (var text in ReplicasString.TryGetRange(index, 10))
+                                {
+                                    graphics.DrawString(text, font, Brushes.Black, 0, n);
+                                }
+
+                                x.SendBmpMessage(bitmap);
+                                log.Info($"为群({GroupId})成员({MemberId})完成宠物副本绘制");
+                            }
+                            else if (StrMess.StartsWith("进入副本"))
+                            {
+                                string ReplicaName = StrMess[4..];
+                                Replica? replica = FindReplica(ReplicaName);
+                                if (replica == null)
+                                {
+                                    break;
+                                }
+
+                                replica.Challenge(Register(x), 1);
+
+                                x.SendMessageAsync("临时测试界面\n" +
+                                                   $"副本名:{replica.Name}\n" +
+                                                   $"奖励积分:{replica.RewardingPoint}");
                             }
                             else if (StrMess.StartsWith("宠物攻击"))
                             {
@@ -629,6 +695,7 @@ namespace OpenPetsWorld
                                 {
                                     playerData.BagItems[item.Id] = 0;
                                 }
+
 
                                 PlayersData[GroupId][MemberId].BagItems[item.Id]++;
                                 await x.SendMessageAsync($"已给予{ItemName}");
@@ -721,11 +788,10 @@ namespace OpenPetsWorld
             }
         }
 
-        static void CoverWriteLine(string Text = "")
+        public static void CoverWriteLine(string Text = "")
         {
             Console.SetCursorPosition(0, Console.CursorTop);
             Console.WriteLine(Text);
-            Console.Write("> ");
         }
 
         public static bool RandomBool()
@@ -749,7 +815,7 @@ namespace OpenPetsWorld
                 }
             }
         }*/
-        
+
         static void EnergyRecovery(object? sender, ElapsedEventArgs e)
         {
             foreach (var group in PlayersData)
@@ -761,7 +827,7 @@ namespace OpenPetsWorld
                 }
             }
         }
-        
+
         static bool CanActivity(PlayerData playerData, string GroupId, string MemberId)
         {
             if (!((GetNowUnixTime() - playerData.ActivityCD > 120) || (playerData.ActivityCD == 0)))
@@ -803,7 +869,7 @@ namespace OpenPetsWorld
         }
 
         #endregion
-        
+
         static string? GetAtNumber(MessageChain messageChain)
         {
             var test = messageChain.OfType<AtMessage>();
@@ -846,7 +912,7 @@ namespace OpenPetsWorld
             Environment.Exit(0);
         }
 
-        private static string ToBase64(Image bmp)
+        public static string ToBase64(Image bmp)
         {
             MemoryStream ms = new();
             bmp.Save(ms, ImageFormat.Png);
