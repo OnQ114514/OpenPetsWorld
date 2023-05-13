@@ -2,6 +2,9 @@ using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld
 {
+    /// <summary>
+    /// 硬核日志类（仅控制台）
+    /// </summary>
     public class Logger
     {
         public void Info(string message)

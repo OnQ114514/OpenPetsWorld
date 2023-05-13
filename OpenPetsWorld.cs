@@ -1,8 +1,6 @@
-﻿using System.CodeDom;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Drawing;
 using Mirai.Net.Data.Messages.Receivers;
-using Mirai.Net.Data.Shared;
 using static OpenPetsWorld.Program;
 using File = System.IO.File;
 
@@ -102,7 +100,6 @@ namespace OpenPetsWorld
                                 break;
                             case 1:
                                 petData.Health += (int)Math.Round(petData.MaxHealth * recovery.Health) * count;
-                                ;
                                 ResHealth = petData.Health - OriginHealth;
                                 break;
                             case 2:
@@ -111,7 +108,8 @@ namespace OpenPetsWorld
                                 count = 1;
                                 break;
                             default:
-                                throw new Exception($"恢复模式异常，模式为{recovery.Mode}，物品Id为{recovery.Id}");
+                                log.Error($"恢复模式异常，模式为{recovery.Mode}，物品Id为{recovery.Id}");
+                                return;
                         }
 
                         SendAtMessage(GroupId, MemberId, $"成功使用【{recovery.Name}】×{count}，将宠物成功复活!\n◇回复血量：{ResHealth}");
@@ -137,7 +135,6 @@ namespace OpenPetsWorld
                     }
 
                     break;
-                case 0:
                 default:
                     SendAtMessage(GroupId, MemberId, "该道具不能直接使用，请更换道具！");
                     return;
@@ -167,6 +164,11 @@ namespace OpenPetsWorld
         public static PlayerData Register(GroupMessageReceiver x)
         {
             return Register(x.GroupId, x.Sender.Id);
+        }
+
+        public static bool HavePet(GroupMessageReceiver x, bool Send = true)
+        {
+            return HavePet(x.GroupId, x.Sender.Id, Send);
         }
 
         public static bool HavePet(string GroupId, string MemberId, bool Send = true)
@@ -209,16 +211,15 @@ namespace OpenPetsWorld
 
         public static Item? FindItem(string ItemName)
         {
-            Item? item = null;
-            foreach (var LItem in from LItem in Items.Values
-                     where LItem.Name == ItemName
-                     select LItem)
+            var items = (from litems in Items.Values
+                where litems.Name == ItemName
+                select litems).ToList();
+            if (items.Count != 0)
             {
-                item = LItem;
-                break;
+                return items[0];
             }
 
-            return item;
+            return null;
         }
 
         public static Replica? FindReplica(string ReplicaName)
@@ -334,7 +335,12 @@ namespace OpenPetsWorld
             #region 玩家数据
 
             string PlayerJson = JsonConvert.SerializeObject(PlayersData);
-            File.WriteAllText("./data/PlayersData.json", PlayerJson);
+            string path = "./data/PlayersData.json";
+            if (!Directory.Exists("./data"))
+            {
+                Directory.CreateDirectory("./data");
+            }
+            File.WriteAllText(path, PlayerJson);
 
             #endregion
         }
@@ -346,7 +352,7 @@ namespace OpenPetsWorld
             /// <summary>
             /// 积分
             /// </summary>
-            public int Points = 0;
+            public int Points;
 
             /// <summary>
             /// 点券
@@ -378,7 +384,7 @@ namespace OpenPetsWorld
             /// </summary>
             public PetData? pet;
 
-            public int ActivityCD = 0;
+            public int LastActivityUnixTime = 0;
 
             public void EnergyAdd()
             {
@@ -398,12 +404,12 @@ namespace OpenPetsWorld
             public int MaxHealth;
             public int MaxExperience = 160;
             public int Level = 1;
-            public string PetName;
-            public string PetGender;
-            public string PetStage = "幼年期";
-            public string PetAttribute;
-            public string PetRank;
-            public string PetState = "正常";
+            public string Name;
+            public string Gender;
+            public string Stage = "幼年期";
+            public string Attribute;
+            public string Rank;
+            public string State = "正常";
             public string iconName;
             public string PettAlent = "无";
             public int Intellect = 4;
@@ -418,23 +424,23 @@ namespace OpenPetsWorld
                 iconName = "kiana.jpg";
                 MaxHealth = random.Next(100, 301);
                 Health = MaxHealth;
-                PetName = "test";
+                Name = "test";
 
                 #region 性别随机
 
-                PetGender = RandomBool() ? "雌" : "雄";
+                Gender = RandomBool() ? "雌" : "雄";
 
                 #endregion
 
                 #region 级别随机
 
-                PetRank = Ranks[random.Next(0, 4)];
+                Rank = Ranks[random.Next(0, 4)];
 
                 #endregion
 
                 #region 属性随机
-
-                PetAttribute = Attributes[random.Next(0, 5)];
+                
+                Attribute = Attributes[random.Next(0, 5)];
 
                 #endregion
             }
@@ -490,10 +496,31 @@ namespace OpenPetsWorld
         public class Item
         {
             public int Id = 0;
+
+            /// <summary>
+            /// 名称
+            /// </summary>
             public string Name = "无";
-            public int ItemType = 0;
+
+            /// <summary>
+            /// 类型
+            /// </summary>
+            public int ItemType;
+
+            /// <summary>
+            /// 描述
+            /// </summary>
             public string? infoText;
-            public string? infoImagePath;
+
+            /// <summary>
+            /// 描述附加图片
+            /// </summary>
+            public string? infoImageName;
+
+            //TODO:实现最低使用等级判断
+            /// <summary>
+            /// 最低使用等级
+            /// </summary>
             public int Level = 0;
         }
 
@@ -569,19 +596,25 @@ namespace OpenPetsWorld
             public string Name;
             public Dictionary<int, int> RewardingItems = new();
             public int RewardingPoint = 0;
+            public int ExpAdd;
             public string enemyName;
-            public int enemyAttack;
+            public int Attack;
             public int Energy = 10;
+
+            public Replica()
+            {
+            }
 
             public bool Challenge(PlayerData player, int count)
             {
-                if (player.pet == null && player.pet.Energy < count * Energy)
+                if (player.pet == null || player.pet.Energy < count * Energy)
                 {
                     return false;
                 }
 
-                player.pet.Health -= enemyAttack * count;
+                player.pet.Health -= Attack * count;
                 player.pet.Energy -= Energy * count;
+                player.pet.Experience += ExpAdd * count;
                 player.Points += RewardingPoint * count;
                 foreach (var item in RewardingItems)
                 {
