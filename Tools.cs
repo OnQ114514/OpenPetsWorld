@@ -32,7 +32,7 @@ namespace OpenPetsWorld
             x.SendMessageAsync(new MessageChainBuilder().ImageFromBase64(ToBase64(image)).Build());
         }
 
-        public static List<T> TryGetRange<T>(this List<T> list, int index, int count)
+        public static List<T> SafeGetRange<T>(this List<T> list, int index, int count)
         {
             int tryCount = list.Count - index;
             if (tryCount > count)

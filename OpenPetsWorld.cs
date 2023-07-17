@@ -3,6 +3,7 @@ using System.Drawing;
 using Mirai.Net.Data.Messages.Receivers;
 using static OpenPetsWorld.Program;
 using File = System.IO.File;
+using OpenPetsWorld.Item;
 
 namespace OpenPetsWorld
 {
@@ -10,22 +11,22 @@ namespace OpenPetsWorld
     {
         public static readonly Font font = new("微软雅黑", 20, FontStyle.Regular);
         public static readonly SolidBrush fontColor = new(Color.Black);
-        static readonly string[] Ranks = { "普通", "精品", "稀有", "史诗", "传说" };
+        //TODO:将下列变量添加至Misc类
+        public static readonly string[] Ranks = { "普通", "精品", "稀有", "史诗", "传说" };
         public static readonly string[] SignTexts = { "奖励积分", "累签", "连签" };
-        static readonly string[] Attributes = { "金", "木", "水", "火", "土" };
-
+        public static readonly string[] Attributes = { "金", "木", "水", "火", "土" };
         public static readonly string[] UnitingPlace =
             { "神魔之井", "霹雳荒原", "石爪山脉", "燃烧平原", "诅咒之地", "洛克莫丹", "天山血池", "银松森林", "闪光平原" };
 
         public static readonly Dictionary<string, long> SentTime = new();
-        public static Dictionary<string, Dictionary<string, PlayerData>> PlayersData = new();
-        public static Dictionary<int, Item> Items = new();
-        public static List<PetData> petPool = new();
+        public static Dictionary<string, Dictionary<string, Player>> Players = new();
+        public static Dictionary<int, BaseItem> Items = new();
+        public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
 
-        public static void UseItemEvent(string GroupId, string MemberId, Item item, int count)
+        /*public static void UseItemEvent(string GroupId, string MemberId, BaseItem item, int count)
         {
-            PlayerData playerData = Register(GroupId, MemberId);
+            Player playerData = Player.Register(GroupId, MemberId);
             PetData? petData;
             switch (item.ItemType)
             {
@@ -136,44 +137,29 @@ namespace OpenPetsWorld
 
                     break;
                 default:
-                    SendAtMessage(GroupId, MemberId, "该道具不能直接使用，请更换道具！");
+                    SendAtMessage(GroupId, MemberId, "");
                     return;
             }
 
             playerData.BagItems[item.Id] -= count;
             playerData.pet = petData;
-            PlayersData[GroupId][MemberId] = playerData;
+            Players[GroupId][MemberId] = playerData;
 #pragma warning restore CS8602 // 解引用可能出现空引用。
-        }
-
-        public static PlayerData Register(string GroupId, string MemberId)
-        {
-            if (!PlayersData.ContainsKey(GroupId))
-            {
-                PlayersData[GroupId] = new();
-            }
-
-            if (!PlayersData[GroupId].ContainsKey(MemberId))
-            {
-                PlayersData[GroupId][MemberId] = new();
-            }
-
-            return PlayersData[GroupId][MemberId];
-        }
-
-        public static PlayerData Register(GroupMessageReceiver x)
-        {
-            return Register(x.GroupId, x.Sender.Id);
-        }
+        }*/
 
         public static bool HavePet(GroupMessageReceiver x, bool Send = true)
         {
             return HavePet(x.GroupId, x.Sender.Id, Send);
         }
 
+        public static bool HavePet(GroupMessageReceiver x, out Pet? petData, bool Send = true)
+        {
+            return HavePet(x.GroupId, x.Sender.Id, out petData, Send);
+        }
+
         public static bool HavePet(string GroupId, string MemberId, bool Send = true)
         {
-            PlayerData playerData = Register(GroupId, MemberId);
+            Player playerData = Player.Register(GroupId, MemberId);
             if (playerData.pet != null)
             {
                 return true;
@@ -187,11 +173,11 @@ namespace OpenPetsWorld
             return false;
         }
 
-        public static bool HavePet(string GroupId, string MemberId, out PetData? petData, bool Send = true)
+        public static bool HavePet(string GroupId, string MemberId, out Pet? petData, bool Send = true)
         {
             if (HavePet(GroupId, MemberId, Send))
             {
-                petData = Register(GroupId, MemberId).pet;
+                petData = Player.Register(GroupId, MemberId).pet;
                 return true;
             }
 
@@ -199,7 +185,7 @@ namespace OpenPetsWorld
             return false;
         }
 
-        public static bool HavePet(PlayerData playerData)
+        public static bool HavePet(Player playerData)
         {
             if (playerData.pet != null)
             {
@@ -209,7 +195,7 @@ namespace OpenPetsWorld
             return false;
         }
 
-        public static Item? FindItem(string ItemName)
+        public static BaseItem? FindItem(string ItemName)
         {
             var items = (from litems in Items.Values
                 where litems.Name == ItemName
@@ -235,7 +221,7 @@ namespace OpenPetsWorld
 
             return replica;
         }
-
+        
         #region 读写数据文件
 
         public static void ReadData()
@@ -245,10 +231,10 @@ namespace OpenPetsWorld
             string ItemsDataPath = "./datapack/Items.json";
             if (File.Exists(ItemsDataPath))
             {
-                var LItemsData = TRead<Dictionary<int, Item>>(ItemsDataPath);
+                var LItemsData = ItemReader.Read(ItemsDataPath);
                 if (LItemsData != null)
                 {
-                    Items = (Dictionary<int, Item>)LItemsData;
+                    Items = LItemsData;
                 }
             }
 
@@ -257,10 +243,10 @@ namespace OpenPetsWorld
             #region 玩家数据
 
             string PlayersDataPath = "./data/PlayersData.json";
-            var LPlayerData = TRead<Dictionary<string, Dictionary<string, PlayerData>>>(PlayersDataPath);
+            var LPlayerData = TRead<Dictionary<string, Dictionary<string, Player>>>(PlayersDataPath);
             if (LPlayerData != null)
             {
-                PlayersData = (Dictionary<string, Dictionary<string, PlayerData>>)LPlayerData;
+                Players = (Dictionary<string, Dictionary<string, Player>>)LPlayerData;
             }
 
             #endregion
@@ -268,10 +254,10 @@ namespace OpenPetsWorld
             #region 宠物池
 
             string petPoolPath = "./datapack/PetPool.json";
-            var LPetPool = TRead<List<PetData>>(petPoolPath);
+            var LPetPool = TRead<List<Pet>>(petPoolPath);
             if (LPetPool != null)
             {
-                petPool = (List<PetData>)LPetPool;
+                PetPool = (List<Pet>)LPetPool;
             }
 
             #endregion
@@ -334,7 +320,7 @@ namespace OpenPetsWorld
         {
             #region 玩家数据
 
-            string PlayerJson = JsonConvert.SerializeObject(PlayersData);
+            string PlayerJson = JsonConvert.SerializeObject(Players);
             string path = "./data/PlayersData.json";
             if (!Directory.Exists("./data"))
             {
@@ -347,7 +333,7 @@ namespace OpenPetsWorld
 
         #endregion
 
-        public class PlayerData
+        public class Player
         {
             /// <summary>
             /// 积分
@@ -382,10 +368,48 @@ namespace OpenPetsWorld
             /// <summary>
             /// 宠物
             /// </summary>
-            public PetData? pet;
+            public Pet? pet;
 
             public int LastActivityUnixTime = 0;
 
+            public static Player Register(GroupMessageReceiver x)
+            {
+                return Register(x.GroupId, x.Sender.Id);
+            }
+            
+            public static Player Register(string GroupId, string MemberId)
+            {
+                if (!Players.ContainsKey(GroupId))
+                {
+                    Players[GroupId] = new();
+                }
+
+                if (!Players[GroupId].ContainsKey(MemberId))
+                {
+                    Players[GroupId][MemberId] = new();
+                }
+
+                return Players[GroupId][MemberId];
+            }
+            
+            public bool CanActivity(GroupMessageReceiver receiver)
+            {
+                return CanActivity(receiver.GroupId, receiver.Sender.Id);
+            }
+            
+            public bool CanActivity(string GroupId, string MemberId)
+            {
+                if (GetNowUnixTime() - LastActivityUnixTime > 120 || (LastActivityUnixTime == 0))
+                {
+                    return HavePet(GroupId, MemberId);
+                }
+
+                SendAtMessage(GroupId, MemberId,
+                    $"时间还没到，距您下一次活动还差[{120 - GetNowUnixTime() + LastActivityUnixTime}]秒!");
+                return false;
+
+            }
+            
             public void EnergyAdd()
             {
                 if (pet != null && pet.Energy < pet.MaxEnergy)
@@ -395,200 +419,7 @@ namespace OpenPetsWorld
             }
         }
 
-        public class PetData
-        {
-            public int Energy = 100;
-            public int Health;
-            public int Experience = 0;
-            public double MaxEnergy = 100;
-            public int MaxHealth;
-            public int MaxExperience = 160;
-            public int Level = 1;
-            public string Name;
-            public string Gender;
-            public string Stage = "幼年期";
-            public string Attribute;
-            public string Rank;
-            public string State = "正常";
-            public string iconName;
-            public string PettAlent = "无";
-            public int Intellect = 4;
-            public int Attack = 10;
-            public int Defense = 10;
-            public Artifact? artifact = null;
-            public int Mood = 50;
 
-            public PetData()
-            {
-                //示例宠物
-                iconName = "kiana.jpg";
-                MaxHealth = random.Next(100, 301);
-                Health = MaxHealth;
-                Name = "test";
-
-                #region 性别随机
-
-                Gender = RandomBool() ? "雌" : "雄";
-
-                #endregion
-
-                #region 级别随机
-
-                Rank = Ranks[random.Next(0, 4)];
-
-                #endregion
-
-                #region 属性随机
-                
-                Attribute = Attributes[random.Next(0, 5)];
-
-                #endregion
-            }
-
-            public int GetPower()
-            {
-                return (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
-            }
-
-            public string GetMoodSymbol()
-            {
-                string Star = string.Empty;
-                int StarNumber = (int)Math.Round((double)Mood / 10);
-                for (int i = 0; i < StarNumber; i++)
-                {
-                    Star += "★";
-                }
-
-                return Star;
-            }
-
-            public void RectOverflow()
-            {
-                if (Health > MaxHealth)
-                {
-                    Health = MaxHealth;
-                }
-
-                if (Health < 0)
-                {
-                    Health = 0;
-                }
-            }
-
-            public static PetData Extract()
-            {
-                int index = random.Next(0, petPool.Count);
-                return petPool[index];
-            }
-
-            public int Damage(PetData myPet)
-            {
-                return (myPet.Attack + myPet.Intellect * 20) *
-                       (1 - (Defense * Intellect * 20) / (Attack + Defense + Health / 10 + Intellect * 20));
-            }
-        }
-
-        #region 物品类
-
-        /// <summary>
-        /// 物品基类（材料）
-        /// </summary>
-        public class Item
-        {
-            public int Id = 0;
-
-            /// <summary>
-            /// 名称
-            /// </summary>
-            public string Name = "无";
-
-            /// <summary>
-            /// 类型
-            /// </summary>
-            public int ItemType;
-
-            /// <summary>
-            /// 描述
-            /// </summary>
-            public string? infoText;
-
-            /// <summary>
-            /// 描述附加图片
-            /// </summary>
-            public string? infoImageName;
-
-            //TODO:实现最低使用等级判断
-            /// <summary>
-            /// 最低使用等级
-            /// </summary>
-            public int Level = 0;
-        }
-
-        /// <summary>
-        /// 神器
-        /// </summary>
-        public class Artifact : Item
-        {
-            public int Attack = 0;
-            public int Defense = 0;
-            public int Energy = 0;
-            public int Intellect = 0;
-            public int Health = 0;
-
-            public Artifact()
-            {
-                ItemType = 1;
-            }
-        }
-
-        /// <summary>
-        /// 复活
-        /// </summary>
-        public class Resurrection : Item
-        {
-            /// <summary>
-            /// 0为回复至某值，1为回复到上限的百分之几，2回满
-            /// </summary>
-            public int Mode = 0;
-
-            public double Health = 0;
-
-            public Resurrection()
-            {
-                ItemType = 2;
-            }
-        }
-
-        /// <summary>
-        /// 恢复
-        /// </summary>
-        public class Recovery : Item
-        {
-            public double Health = 0;
-
-            /// <summary>
-            /// 0增加，1为增加到上限的百分之几，2回满
-            /// </summary>
-            public int Mode = 0;
-
-            public Recovery()
-            {
-                ItemType = 3;
-            }
-        }
-
-        /// <summary>
-        /// 增益
-        /// </summary>
-        public class Gain : Item
-        {
-            public Gain()
-            {
-                ItemType = 4;
-            }
-        }
-
-        #endregion
 
         public class Replica
         {
@@ -600,12 +431,9 @@ namespace OpenPetsWorld
             public string enemyName;
             public int Attack;
             public int Energy = 10;
+            public string? iconName = null;
 
-            public Replica()
-            {
-            }
-
-            public bool Challenge(PlayerData player, int count)
+            public bool Challenge(Player player, int count)
             {
                 if (player.pet == null || player.pet.Energy < count * Energy)
                 {
