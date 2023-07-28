@@ -11,11 +11,11 @@ namespace OpenPetsWorld
     {
         public static readonly Font font = new("微软雅黑", 20, FontStyle.Regular);
         public static readonly SolidBrush fontColor = new(Color.Black);
-        //TODO:将下列变量添加至Misc类
-        public static readonly string[] Ranks = { "普通", "精品", "稀有", "史诗", "传说" };
+
+        public static string[] Ranks = { "普通", "精品", "稀有", "史诗", "传说" };
         public static readonly string[] SignTexts = { "奖励积分", "累签", "连签" };
-        public static readonly string[] Attributes = { "金", "木", "水", "火", "土" };
-        public static readonly string[] UnitingPlace =
+        public static string[] Attributes = { "金", "木", "水", "火", "土" };
+        public static string[] UnitingPlace =
             { "神魔之井", "霹雳荒原", "石爪山脉", "燃烧平原", "诅咒之地", "洛克莫丹", "天山血池", "银松森林", "闪光平原" };
 
         public static readonly Dictionary<string, long> SentTime = new();
@@ -23,130 +23,7 @@ namespace OpenPetsWorld
         public static Dictionary<int, BaseItem> Items = new();
         public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
-
-        /*public static void UseItemEvent(string GroupId, string MemberId, BaseItem item, int count)
-        {
-            Player playerData = Player.Register(GroupId, MemberId);
-            PetData? petData;
-            switch (item.ItemType)
-            {
-                case 1:
-                    return;
-                case 2:
-                {
-#pragma warning disable CS8602 // 解引用可能出现空引用。
-                    if (!HavePet(GroupId, MemberId, out petData) || petData == null)
-                    {
-                        return;
-                    }
-
-                    if (petData.Health == 0)
-                    {
-                        int ResHealth;
-                        Resurrection resurrection = (Resurrection)item;
-                        switch (resurrection.Mode)
-                        {
-                            case 0:
-                                petData.Health =
-                                    (int)(petData.MaxHealth < resurrection.Health
-                                        ? petData.MaxHealth
-                                        : resurrection.Health);
-                                petData.RectOverflow();
-                                ResHealth = petData.Health;
-                                break;
-                            case 1:
-                                ResHealth = petData.Health = (int)Math.Round(petData.MaxHealth * resurrection.Health);
-                                break;
-                            case 2:
-                                ResHealth = petData.Health = petData.MaxHealth;
-                                break;
-                            default:
-                                throw new Exception($"恢复模式异常，模式为{resurrection.Mode}，物品Id为{resurrection.Id}");
-                        }
-
-                        count = 1;
-                        SendAtMessage(GroupId, MemberId, $"成功使用【{item.Name}】×1，将宠物成功复活!\n◇回复血量：{ResHealth}");
-                    }
-                    else
-                    {
-                        SendAtMessage(GroupId, MemberId, "你的宠物没有死亡，无需复活！");
-                        return;
-                    }
-                }
-                    break;
-                case 3:
-                {
-                    Recovery recovery = (Recovery)item;
-                    if (!HavePet(GroupId, MemberId, out petData))
-                    {
-                        return;
-                    }
-
-                    if (petData.Health == 0)
-                    {
-                        SendAtMessage(GroupId, MemberId, "您的宠物已死亡，请先进行复活！");
-                        return;
-                    }
-
-                    if (petData.Health < petData.MaxHealth)
-                    {
-                        int OriginHealth = petData.Health;
-                        int ResHealth;
-                        switch (recovery.Mode)
-                        {
-                            case 0:
-                                petData.Health += (int)recovery.Health * count;
-                                petData.RectOverflow();
-                                ResHealth = petData.Health - OriginHealth;
-                                break;
-                            case 1:
-                                petData.Health += (int)Math.Round(petData.MaxHealth * recovery.Health) * count;
-                                ResHealth = petData.Health - OriginHealth;
-                                break;
-                            case 2:
-                                petData.Health = petData.MaxHealth;
-                                ResHealth = petData.MaxHealth - OriginHealth;
-                                count = 1;
-                                break;
-                            default:
-                                log.Error($"恢复模式异常，模式为{recovery.Mode}，物品Id为{recovery.Id}");
-                                return;
-                        }
-
-                        SendAtMessage(GroupId, MemberId, $"成功使用【{recovery.Name}】×{count}，将宠物成功复活!\n◇回复血量：{ResHealth}");
-                    }
-                    else
-                    {
-                        SendAtMessage(GroupId, MemberId, "你的宠物当前不需要恢复生命！");
-                        return;
-                    }
-
-                    break;
-                }
-                case 4:
-                    if (!HavePet(GroupId, MemberId, out petData))
-                    {
-                        return;
-                    }
-
-                    if (petData.Level < item.Level)
-                    {
-                        SendAtMessage(GroupId, MemberId, $"该道具最低使用等级[{item.Level}]！");
-                        return;
-                    }
-
-                    break;
-                default:
-                    SendAtMessage(GroupId, MemberId, "");
-                    return;
-            }
-
-            playerData.BagItems[item.Id] -= count;
-            playerData.pet = petData;
-            Players[GroupId][MemberId] = playerData;
-#pragma warning restore CS8602 // 解引用可能出现空引用。
-        }*/
-
+        
         public static bool HavePet(GroupMessageReceiver x, bool Send = true)
         {
             return HavePet(x.GroupId, x.Sender.Id, Send);
@@ -221,11 +98,24 @@ namespace OpenPetsWorld
 
             return replica;
         }
-        
+
         #region 读写数据文件
 
         public static void ReadData()
         {
+            #region 杂项
+
+            string MiscPath = "./datapack/misc.json";
+            Misc misc = (Misc)TRead<Misc>(MiscPath);
+            if (misc != null)
+            {
+                Ranks = misc.Ranks;
+                UnitingPlace = misc.UnitingPlace;
+                Attributes = misc.Attributes;
+            }
+
+            #endregion
+
             #region 物品数据
 
             string ItemsDataPath = "./datapack/Items.json";
@@ -326,101 +216,14 @@ namespace OpenPetsWorld
             {
                 Directory.CreateDirectory("./data");
             }
+
             File.WriteAllText(path, PlayerJson);
 
             #endregion
         }
 
         #endregion
-
-        public class Player
-        {
-            /// <summary>
-            /// 积分
-            /// </summary>
-            public int Points;
-
-            /// <summary>
-            /// 点券
-            /// </summary>
-            public int Bonds = 0;
-
-            /// <summary>
-            /// 累签
-            /// </summary>
-            public int SignedDays = 0;
-
-            /// <summary>
-            /// 连签
-            /// </summary>
-            public int ContinuousSignedDays = 0;
-
-            /// <summary>
-            /// 上次签到时间
-            /// </summary>
-            public int LastSignedUnixTime = 0;
-
-            /// <summary>
-            /// 背包
-            /// </summary>
-            public Dictionary<int, int> BagItems = new();
-
-            /// <summary>
-            /// 宠物
-            /// </summary>
-            public Pet? pet;
-
-            public int LastActivityUnixTime = 0;
-
-            public static Player Register(GroupMessageReceiver x)
-            {
-                return Register(x.GroupId, x.Sender.Id);
-            }
-            
-            public static Player Register(string GroupId, string MemberId)
-            {
-                if (!Players.ContainsKey(GroupId))
-                {
-                    Players[GroupId] = new();
-                }
-
-                if (!Players[GroupId].ContainsKey(MemberId))
-                {
-                    Players[GroupId][MemberId] = new();
-                }
-
-                return Players[GroupId][MemberId];
-            }
-            
-            public bool CanActivity(GroupMessageReceiver receiver)
-            {
-                return CanActivity(receiver.GroupId, receiver.Sender.Id);
-            }
-            
-            public bool CanActivity(string GroupId, string MemberId)
-            {
-                if (GetNowUnixTime() - LastActivityUnixTime > 120 || (LastActivityUnixTime == 0))
-                {
-                    return HavePet(GroupId, MemberId);
-                }
-
-                SendAtMessage(GroupId, MemberId,
-                    $"时间还没到，距您下一次活动还差[{120 - GetNowUnixTime() + LastActivityUnixTime}]秒!");
-                return false;
-
-            }
-            
-            public void EnergyAdd()
-            {
-                if (pet != null && pet.Energy < pet.MaxEnergy)
-                {
-                    pet.Energy++;
-                }
-            }
-        }
-
-
-
+        
         public class Replica
         {
             public int Level = 0;

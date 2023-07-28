@@ -1,4 +1,5 @@
 using Mirai.Net.Data.Messages.Receivers;
+using OpenPetsWorld.Extra;
 using static OpenPetsWorld.OpenPetsWorld;
 using static OpenPetsWorld.Program;
 
@@ -36,6 +37,8 @@ public class BaseItem
     /// </summary>
     public int Level = 0;
 
+    public Formulation? Formulation;
+
     public virtual bool Use(GroupMessageReceiver receiver, int count)
     {
         Player player = Player.Register(receiver);
@@ -62,6 +65,26 @@ public class BaseItem
         player.BagItems[Id] -= count;
 
         return true;
+    }
+
+    public bool Make(GroupMessageReceiver receiver, int count)
+    {
+        if (Formulation == null)
+        {
+            receiver.SendAtMessage("此物品暂不支持合成！");
+            return false;
+        }
+        Player player = Player.Register(receiver);
+        return true;
+    }
+    
+    public static FItem operator *(BaseItem item, int count)
+    {
+        return new FItem()
+        {
+            id = item.Id,
+            count = count
+        };
     }
 }
 
@@ -222,6 +245,7 @@ public class Recovery : BaseItem
             receiver.SendAtMessage($"成功使用【{Name}】×{count}，将宠物成功复活!\n◇回复血量：{ResHealth}");
             return true;
         }
+
         receiver.SendAtMessage("你的宠物当前不需要恢复生命！");
         return false;
     }
@@ -232,8 +256,52 @@ public class Recovery : BaseItem
 /// </summary>
 public class Gain : BaseItem
 {
+    public int Attack = 0;
+    public int Defense = 0;
+    public int Intellect = 0;
+    public int Health = 0;
+
     public Gain()
     {
         ItemType = ItemType.Gain;
+    }
+
+    public override bool Use(GroupMessageReceiver receiver, int count)
+    {
+        if (base.Use(receiver, count))
+        {
+            Pet pet = Player.Register(receiver).pet;
+            List<string> message = new()
+            {
+                $"成功使用[{Name}] ×{count}，触发以下效果："
+            };
+            if (Attack != 0)
+            {
+                message.Add($"◇攻击永久提升：{Attack}");
+            }
+
+            if (Defense != 0)
+            {
+                message.Add($"◇防御永久提升：{Defense}");
+            }
+
+            if (Intellect != 0)
+            {
+                message.Add($"◇智力永久提升：{Intellect}");
+            }
+
+            if (Health != 0)
+            {
+                message.Add($"◇生命永久提升：{Health}");
+            }
+            pet.Attack += Attack;
+            pet.Defense += Defense;
+            pet.Intellect += Intellect;
+            pet.Health += Health;
+            receiver.SendAtMessage(string.Join("\n", message));
+            return true;
+        }
+
+        return false;
     }
 }

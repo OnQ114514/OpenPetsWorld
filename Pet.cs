@@ -54,10 +54,7 @@ public class Pet
         #endregion
     }
 
-    public int GetPower()
-    {
-        return (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
-    }
+    public int Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
 
     public string GetMoodSymbol()
     {

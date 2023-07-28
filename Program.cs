@@ -220,8 +220,7 @@ namespace OpenPetsWorld
                         Console.WriteLine(string.Join("\n", RunGroupId));
                         break;
                     case "/reload":
-                        SaveData();
-                        ReadData();
+                        Reload();
                         Console.WriteLine("已重载数据");
                         break;
                     case "":
@@ -328,12 +327,12 @@ namespace OpenPetsWorld
                             $"状态:{p.State}",
                             "神器:",
                             $"天赋:{p.PettAlent}",
-                            $"战力:{p.GetPower()}",
+                            $"战力:{p.Power}",
                             $"智力:{p.Intellect}",
                             $"攻击:{p.Attack}",
                             $"防御:{p.Defense}"
                         };
-                        AbTexts2[7] += p.artifact != null ? p.artifact.Name : "无";
+                        AbTexts2[7] += p.artifact?.Name ?? "无";
 
                         int n2 = 20;
                         foreach (string AbText in AbTexts2)
@@ -416,7 +415,7 @@ namespace OpenPetsWorld
                 case "洗髓":
                 {
                     Player player = Player.Register(x);
-                    if (player.CanActivity(x) && HavePet(x))
+                    if (player.CanActivity(x))
                     {
                         Pet? petData = Players[GroupId][MemberId].pet;
                         petData.Energy -= 10;
@@ -487,7 +486,7 @@ namespace OpenPetsWorld
                 case "签到":
                 {
                     Player player = Player.Register(x);
-                    int TodayUnixTime = ToUnixTime(DateTime.Now.Date);
+                    long TodayUnixTime = DateTime.Now.Date.ToUnixTime();
                     if (TodayUnixTime - player.LastSignedUnixTime <= 86400)
                     {
                         x.SendAtMessage("今天已签到过了,明天再来吧!");
@@ -555,23 +554,8 @@ namespace OpenPetsWorld
                     List<string> BagItemList = new();
                     foreach (var BagItem in player.BagItems)
                     {
-                        string StrItemType = string.Empty;
                         BaseItem item = Items[BagItem.Key];
-                        switch (item.ItemType)
-                        {
-                            case ItemType.Material:
-                                StrItemType = "材料";
-                                break;
-                            case ItemType.Artifact:
-                                StrItemType = "神器";
-                                break;
-                            case ItemType.Resurrection:
-                                StrItemType = "复活";
-                                break;
-                            case ItemType.Recovery:
-                                StrItemType = "恢复";
-                                break;
-                        }
+                        string StrItemType = item.ItemType.ToStr();
 
                         int count = BagItem.Value;
                         if (count != 0)
@@ -857,15 +841,18 @@ namespace OpenPetsWorld
             return qqNumber;
         }
 
-        public static int GetNowUnixTime()
+        private static void Reload()
         {
-            return ToUnixTime(DateTime.UtcNow);
+            SaveData();
+            ReadData();
         }
 
-        static int ToUnixTime(DateTime dateTime)
+        public static long GetNowUnixTime()
         {
-            return (int)new DateTimeOffset(dateTime).ToUnixTimeSeconds();
+            return DateTime.UtcNow.ToUnixTime();
         }
+
+        
 
         public static void KeysExit()
         {

@@ -42,7 +42,13 @@ namespace OpenPetsWorld
 
             return list.GetRange(index, tryCount);
         }
-
+        
+        public static long ToUnixTime(this DateTime dateTime)
+        {
+            return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
+        }
+        
+        //TODO:优化以下方法
         public static int GetCount(this string v, string symbol = "*")
         {
             if (v == string.Empty)
