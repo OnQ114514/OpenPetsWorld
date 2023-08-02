@@ -47,6 +47,24 @@ namespace OpenPetsWorld
         {
             return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
         }
+
+        public static void MergeValue<T>(this Dictionary<T, int> dictionary, T key, int value) where T : notnull
+        {
+            if (!dictionary.TryAdd(key, value))
+            {
+                dictionary[key] += value;
+            }
+        }
+
+        public static string ToSignedString(this int value)
+        {
+            if (value > 0)
+            {
+                return "+" + value.ToString();
+            }
+
+            return value.ToString();
+        }
         
         //TODO:优化以下方法
         public static int GetCount(this string v, string symbol = "*")

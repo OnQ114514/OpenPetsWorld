@@ -1,3 +1,4 @@
+using Mirai.Net.Data.Messages.Receivers;
 using OpenPetsWorld.Item;
 using static OpenPetsWorld.OpenPetsWorld;
 using static OpenPetsWorld.Program;
@@ -19,19 +20,19 @@ public class Pet
     public string Attribute;
     public string Rank;
     public string State = "正常";
-    public string iconName;
+    public string IconName;
     public string PettAlent = "无";
     public int Intellect = 4;
     public int Attack = 10;
     public int Defense = 10;
-    public Artifact? artifact = null;
+    public Artifact Artifact = Artifact.Null;
     public int Mood = 50;
 
     public Pet()
     {
         //示例宠物
-        iconName = "kiana.jpg";
-        MaxHealth = random.Next(100, 301);
+        IconName = "kiana.jpg";
+        MaxHealth = Program.Random.Next(100, 301);
         Health = MaxHealth;
         Name = "test";
 
@@ -43,13 +44,13 @@ public class Pet
 
         #region 级别随机
 
-        Rank = Ranks[random.Next(0, 4)];
+        Rank = Ranks[Program.Random.Next(0, 4)];
 
         #endregion
 
         #region 属性随机
 
-        Attribute = Attributes[random.Next(0, 5)];
+        Attribute = Attributes[Program.Random.Next(0, 5)];
 
         #endregion
     }
@@ -58,14 +59,14 @@ public class Pet
 
     public string GetMoodSymbol()
     {
-        string Star = string.Empty;
-        int StarNumber = (int)Math.Round((double)Mood / 10);
-        for (int i = 0; i < StarNumber; i++)
+        string star = string.Empty;
+        int starNumber = (int)Math.Round((double)Mood / 10);
+        for (int i = 0; i < starNumber; i++)
         {
-            Star += "★";
+            star += "★";
         }
 
-        return Star;
+        return star;
     }
 
     public void RectOverflow()
@@ -83,7 +84,7 @@ public class Pet
 
     public static Pet Extract()
     {
-        int index = random.Next(0, PetPool.Count);
+        int index = Program.Random.Next(0, PetPool.Count);
         return PetPool[index];
     }
 
@@ -91,5 +92,19 @@ public class Pet
     {
         return (myPet.Attack + myPet.Intellect * 20) *
                (1 - (Defense * Intellect * 20) / (Attack + Defense + Health / 10 + Intellect * 20));
+    }
+
+    public bool RemoveArtifact(GroupMessageReceiver receiver)
+    {
+        if (Artifact.Id == -1)
+        {
+            receiver.SendAtMessage("你的宠物还未佩戴神器！");
+            return false;
+        }
+        Player player = Player.Register(receiver);
+        player.Bag.MergeValue(Artifact.Id, 1);
+        Artifact = Artifact.Null;
+
+        return true;
     }
 }

@@ -34,12 +34,12 @@ public class Player
     /// <summary>
     /// 背包
     /// </summary>
-    public Dictionary<int, int> BagItems = new();
+    public Dictionary<int, int> Bag = new();
 
     /// <summary>
     /// 宠物
     /// </summary>
-    public Pet? pet;
+    public Pet? Pet;
 
     public long LastActivityUnixTime = 0;
 
@@ -48,19 +48,19 @@ public class Player
         return Register(x.GroupId, x.Sender.Id);
     }
 
-    public static Player Register(string GroupId, string MemberId)
+    public static Player Register(string groupId, string memberId)
     {
-        if (!Players.ContainsKey(GroupId))
+        if (!Players.ContainsKey(groupId))
         {
-            Players[GroupId] = new();
+            Players[groupId] = new();
         }
 
-        if (!Players[GroupId].ContainsKey(MemberId))
+        if (!Players[groupId].ContainsKey(memberId))
         {
-            Players[GroupId][MemberId] = new();
+            Players[groupId][memberId] = new();
         }
 
-        return Players[GroupId][MemberId];
+        return Players[groupId][memberId];
     }
 
     public bool CanActivity(GroupMessageReceiver receiver)
@@ -68,23 +68,23 @@ public class Player
         return CanActivity(receiver.GroupId, receiver.Sender.Id);
     }
 
-    public bool CanActivity(string GroupId, string MemberId)
+    public bool CanActivity(string groupId, string memberId)
     {
         if (GetNowUnixTime() - LastActivityUnixTime > 120 || (LastActivityUnixTime == 0))
         {
-            return HavePet(GroupId, MemberId);
+            return HavePet(groupId, memberId);
         }
 
-        SendAtMessage(GroupId, MemberId,
+        SendAtMessage(groupId, memberId,
             $"时间还没到，距您下一次活动还差[{120 - GetNowUnixTime() + LastActivityUnixTime}]秒!");
         return false;
     }
 
     public void EnergyAdd()
     {
-        if (pet != null && pet.Energy < pet.MaxEnergy)
+        if (Pet != null && Pet.Energy < Pet.MaxEnergy)
         {
-            pet.Energy++;
+            Pet.Energy++;
         }
     }
 }

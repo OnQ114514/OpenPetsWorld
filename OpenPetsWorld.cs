@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System.Drawing;
 using Mirai.Net.Data.Messages.Receivers;
 using static OpenPetsWorld.Program;
 using File = System.IO.File;
@@ -9,9 +8,6 @@ namespace OpenPetsWorld
 {
     public static class OpenPetsWorld
     {
-        public static readonly Font font = new("微软雅黑", 20, FontStyle.Regular);
-        public static readonly SolidBrush fontColor = new(Color.Black);
-
         public static string[] Ranks = { "普通", "精品", "稀有", "史诗", "传说" };
         public static readonly string[] SignTexts = { "奖励积分", "累签", "连签" };
         public static string[] Attributes = { "金", "木", "水", "火", "土" };
@@ -24,37 +20,37 @@ namespace OpenPetsWorld
         public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
         
-        public static bool HavePet(GroupMessageReceiver x, bool Send = true)
+        public static bool HavePet(GroupMessageReceiver x, bool send = true)
         {
-            return HavePet(x.GroupId, x.Sender.Id, Send);
+            return HavePet(x.GroupId, x.Sender.Id, send);
         }
 
-        public static bool HavePet(GroupMessageReceiver x, out Pet? petData, bool Send = true)
+        public static bool HavePet(GroupMessageReceiver x, out Pet? petData, bool send = true)
         {
-            return HavePet(x.GroupId, x.Sender.Id, out petData, Send);
+            return HavePet(x.GroupId, x.Sender.Id, out petData, send);
         }
 
-        public static bool HavePet(string GroupId, string MemberId, bool Send = true)
+        public static bool HavePet(string groupId, string memberId, bool send = true)
         {
-            Player playerData = Player.Register(GroupId, MemberId);
-            if (playerData.pet != null)
+            Player playerData = Player.Register(groupId, memberId);
+            if (playerData.Pet != null)
             {
                 return true;
             }
 
-            if (Send)
+            if (send)
             {
-                SendAtMessage(GroupId, MemberId, "您当前还没有宠物,赶紧邂逅您的宠物!\n◇指令:砸蛋");
+                SendAtMessage(groupId, memberId, "您当前还没有宠物,赶紧邂逅您的宠物!\n◇指令:砸蛋");
             }
 
             return false;
         }
 
-        public static bool HavePet(string GroupId, string MemberId, out Pet? petData, bool Send = true)
+        public static bool HavePet(string groupId, string memberId, out Pet? petData, bool send = true)
         {
-            if (HavePet(GroupId, MemberId, Send))
+            if (HavePet(groupId, memberId, send))
             {
-                petData = Player.Register(GroupId, MemberId).pet;
+                petData = Player.Register(groupId, memberId).Pet;
                 return true;
             }
 
@@ -64,7 +60,7 @@ namespace OpenPetsWorld
 
         public static bool HavePet(Player playerData)
         {
-            if (playerData.pet != null)
+            if (playerData.Pet != null)
             {
                 return true;
             }
@@ -72,10 +68,10 @@ namespace OpenPetsWorld
             return false;
         }
 
-        public static BaseItem? FindItem(string ItemName)
+        public static BaseItem? FindItem(string itemName)
         {
             var items = (from litems in Items.Values
-                where litems.Name == ItemName
+                where litems.Name == itemName
                 select litems).ToList();
             if (items.Count != 0)
             {
@@ -85,14 +81,14 @@ namespace OpenPetsWorld
             return null;
         }
 
-        public static Replica? FindReplica(string ReplicaName)
+        public static Replica? FindReplica(string replicaName)
         {
             Replica? replica = null;
-            foreach (var LReplica in from LReplica in Replicas
-                     where LReplica.Name == ReplicaName
-                     select LReplica)
+            foreach (var lReplica in from lReplica in Replicas
+                     where lReplica.Name == replicaName
+                     select lReplica)
             {
-                replica = LReplica;
+                replica = lReplica;
                 break;
             }
 
@@ -106,7 +102,7 @@ namespace OpenPetsWorld
             #region 杂项
 
             string MiscPath = "./datapack/misc.json";
-            Misc misc = (Misc)TRead<Misc>(MiscPath);
+            Misc misc = (Misc)TryRead<Misc>(MiscPath);
             if (misc != null)
             {
                 Ranks = misc.Ranks;
@@ -118,10 +114,10 @@ namespace OpenPetsWorld
 
             #region 物品数据
 
-            string ItemsDataPath = "./datapack/Items.json";
-            if (File.Exists(ItemsDataPath))
+            string itemsDataPath = "./datapack/Items.json";
+            if (File.Exists(itemsDataPath))
             {
-                var LItemsData = ItemReader.Read(ItemsDataPath);
+                var LItemsData = ItemReader.Read(itemsDataPath);
                 if (LItemsData != null)
                 {
                     Items = LItemsData;
@@ -132,11 +128,11 @@ namespace OpenPetsWorld
 
             #region 玩家数据
 
-            string PlayersDataPath = "./data/PlayersData.json";
-            var LPlayerData = TRead<Dictionary<string, Dictionary<string, Player>>>(PlayersDataPath);
-            if (LPlayerData != null)
+            string playersDataPath = "./data/PlayersData.json";
+            var lPlayerData = TryRead<Dictionary<string, Dictionary<string, Player>>>(playersDataPath);
+            if (lPlayerData != null)
             {
-                Players = (Dictionary<string, Dictionary<string, Player>>)LPlayerData;
+                Players = lPlayerData;
             }
 
             #endregion
@@ -144,61 +140,61 @@ namespace OpenPetsWorld
             #region 宠物池
 
             string petPoolPath = "./datapack/PetPool.json";
-            var LPetPool = TRead<List<Pet>>(petPoolPath);
-            if (LPetPool != null)
+            var lPetPool = TryRead<List<Pet>>(petPoolPath);
+            if (lPetPool != null)
             {
-                PetPool = (List<Pet>)LPetPool;
+                PetPool = lPetPool;
             }
 
             #endregion
 
             #region 副本数据
 
-            string ReplicaPath = "./datapack/replicas.json";
-            if (File.Exists(ReplicaPath))
+            string replicaPath = "./datapack/replicas.json";
+            if (File.Exists(replicaPath))
             {
-                var LReplicaData = TRead<List<Replica>>(ReplicaPath);
-                if (LReplicaData != null)
+                var lReplicaData = TryRead<List<Replica>>(replicaPath);
+                if (lReplicaData != null)
                 {
-                    Replicas = (List<Replica>)LReplicaData;
+                    Replicas = lReplicaData;
                 }
             }
 
             #endregion
         }
 
-        static object? TRead<T>(string DataPath)
+        private static T? TryRead<T>(string dataPath) where T : class
         {
-            if (File.Exists(DataPath))
+            if (File.Exists(dataPath))
             {
                 try
                 {
-                    string json = File.ReadAllText(DataPath);
-                    var Data = JsonConvert.DeserializeObject<T>(json);
-                    return Data;
+                    string json = File.ReadAllText(dataPath);
+                    var data = JsonConvert.DeserializeObject<T>(json);
+                    return data;
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
-                    ErrorDispose(DataPath);
+                    ErrorDispose(dataPath);
                 }
             }
 
             return null;
         }
 
-        static void ErrorDispose(string Path)
+        static void ErrorDispose(string path)
         {
             ReInput:
             Console.Write("检测到读取数据文件时发生错误，是否删除数据文件？(true/false):");
-            if (!bool.TryParse(Console.ReadLine(), out bool DelConfig))
+            if (!bool.TryParse(Console.ReadLine(), out bool delConfig))
             {
                 goto ReInput;
             }
 
-            if (DelConfig)
+            if (delConfig)
             {
-                File.Delete(Path);
+                File.Delete(path);
             }
             else
             {
@@ -210,14 +206,14 @@ namespace OpenPetsWorld
         {
             #region 玩家数据
 
-            string PlayerJson = JsonConvert.SerializeObject(Players);
+            string playerJson = JsonConvert.SerializeObject(Players);
             string path = "./data/PlayersData.json";
             if (!Directory.Exists("./data"))
             {
                 Directory.CreateDirectory("./data");
             }
 
-            File.WriteAllText(path, PlayerJson);
+            File.WriteAllText(path, playerJson);
 
             #endregion
         }
@@ -234,28 +230,28 @@ namespace OpenPetsWorld
             public string enemyName;
             public int Attack;
             public int Energy = 10;
-            public string? iconName = null;
+            public string? IconName = null;
 
             public bool Challenge(Player player, int count)
             {
-                if (player.pet == null || player.pet.Energy < count * Energy)
+                if (player.Pet == null || player.Pet.Energy < count * Energy)
                 {
                     return false;
                 }
 
-                player.pet.Health -= Attack * count;
-                player.pet.Energy -= Energy * count;
-                player.pet.Experience += ExpAdd * count;
+                player.Pet.Health -= Attack * count;
+                player.Pet.Energy -= Energy * count;
+                player.Pet.Experience += ExpAdd * count;
                 player.Points += RewardingPoint * count;
                 foreach (var item in RewardingItems)
                 {
-                    if (!player.BagItems.ContainsKey(item.Key))
+                    if (!player.Bag.ContainsKey(item.Key))
                     {
-                        player.BagItems[item.Key] = item.Value;
+                        player.Bag[item.Key] = item.Value;
                     }
                     else
                     {
-                        player.BagItems[item.Key] += item.Value;
+                        player.Bag[item.Key] += item.Value;
                     }
                 }
 

@@ -15,14 +15,14 @@ public class Formulation : List<FItem>
 
 public class FItem
 {
-    public int id;
-    public int count = 1;
+    public int Id;
+    public int Count = 1;
 
     public static implicit operator FItem(BaseItem item)
     {
         return new FItem()
         {
-            id = item.Id
+            Id = item.Id
         };
     }
 }

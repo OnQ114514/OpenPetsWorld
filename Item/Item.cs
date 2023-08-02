@@ -42,7 +42,7 @@ public class BaseItem
     public virtual bool Use(GroupMessageReceiver receiver, int count)
     {
         Player player = Player.Register(receiver);
-        if (player.BagItems[Id] < count)
+        if (player.Bag[Id] < count)
         {
             receiver.SendAtMessage($"你的背包中【{Name}】不足{count}个！");
             return false;
@@ -62,7 +62,7 @@ public class BaseItem
             }
         }
 
-        player.BagItems[Id] -= count;
+        player.Bag[Id] -= count;
 
         return true;
     }
@@ -74,7 +74,26 @@ public class BaseItem
             receiver.SendAtMessage("此物品暂不支持合成！");
             return false;
         }
+
         Player player = Player.Register(receiver);
+        foreach (var item in Formulation)
+        {
+            player.Bag.TryGetValue(item.Id, out int itemCount);
+
+            int countNeeded = item.Count * count;
+            if (itemCount < countNeeded)
+            {
+                receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Id]}]不足{countNeeded}个");
+                return false;
+            }
+        }
+
+        foreach (var item in Formulation)
+        {
+            player.Bag[item.Id] -= item.Count * count;
+        }
+        
+        player.Bag.MergeValue(Id, count);
         return true;
     }
     
@@ -82,8 +101,8 @@ public class BaseItem
     {
         return new FItem()
         {
-            id = item.Id,
-            count = count
+            Id = item.Id,
+            Count = count
         };
     }
 }
@@ -113,6 +132,12 @@ public class Artifact : BaseItem
     public int Intellect = 0;
     public int Health = 0;
 
+    public static Artifact Null = new Artifact()
+    {
+        Id = -1,
+        Name = "无"
+    };
+
     public Artifact()
     {
         ItemType = ItemType.Artifact;
@@ -120,20 +145,20 @@ public class Artifact : BaseItem
 
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
-        if (!base.Use(receiver, count)) return false;
+        if (!base.Use(receiver, 1)) return false;
         Player player = Player.Register(receiver);
-        player.pet.artifact = this;
+        player.Pet.Artifact = this;
         List<string> message = new()
         {
-            $"您的[{player.pet.Name}]戴着神器真是威风凌凌呢!",
+            $"您的[{player.Pet.Name}]戴着神器真是威风凌凌呢!",
             $"● 神器名称：{Name}",
             $"● 佩戴等级：LV·{Level}"
         };
-        if (Health != 0) message.Add($"+{Health}");
-        if (Attack != 0) message.Add($"+{Attack}");
-        if (Defense != 0) message.Add($"+{Defense}");
-        if (Intellect != 0) message.Add($"+{Intellect}");
-        if (Energy != 0) message.Add($"+{Energy}");
+        if (Health != 0) message.Add($"● 生命提升{Health.ToSignedString()}");
+        if (Attack != 0) message.Add($"● 攻击提升{Attack.ToSignedString()}");
+        if (Defense != 0) message.Add($"● 防御提升{Defense.ToSignedString()}");
+        if (Intellect != 0) message.Add($"● 智力提升{Intellect.ToSignedString()}");
+        if (Energy != 0) message.Add($"● 精力提升{Energy.ToSignedString()}");
         receiver.SendAtMessage(string.Join("\n", message));
         return true;
     }
@@ -159,7 +184,7 @@ public class Resurrection : BaseItem
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
-        Pet petData = Player.Register(receiver).pet;
+        Pet petData = Player.Register(receiver).Pet;
         if (petData.Health == 0)
         {
             int ResHealth;
@@ -210,7 +235,7 @@ public class Recovery : BaseItem
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
-        Pet pet = Player.Register(receiver).pet;
+        Pet pet = Player.Register(receiver).Pet;
         if (pet.Health == 0)
         {
             receiver.SendAtMessage("您的宠物已死亡，请先进行复活！");
@@ -238,7 +263,7 @@ public class Recovery : BaseItem
                     count = 1;
                     break;
                 default:
-                    log.Error($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
+                    Log.Error($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
                     return false;
             }
 
@@ -270,7 +295,7 @@ public class Gain : BaseItem
     {
         if (base.Use(receiver, count))
         {
-            Pet pet = Player.Register(receiver).pet;
+            Pet pet = Player.Register(receiver).Pet;
             List<string> message = new()
             {
                 $"成功使用[{Name}] ×{count}，触发以下效果："
