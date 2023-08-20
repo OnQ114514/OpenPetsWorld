@@ -332,14 +332,13 @@ namespace OpenPetsWorld
                             $"属性:{p.Attribute}",
                             $"级别:{p.Rank}",
                             $"状态:{p.State}",
-                            "神器:",
+                            $"神器:{p.Artifact.Name}",
                             $"天赋:{p.PettAlent}",
                             $"战力:{p.Power}",
                             $"智力:{p.Intellect}",
                             $"攻击:{p.Attack}",
                             $"防御:{p.Defense}"
                         };
-                        abTexts2[7] += p.Artifact?.Name ?? "无";
 
                         int n2 = 20;
                         foreach (string abText in abTexts2)
@@ -611,11 +610,24 @@ namespace OpenPetsWorld
                     x.SendBmpMessage(ImageData);
                     break;
                 }
+                case "AllItemList":
+                    if (memberId == MasterId)
+                    {
+                        List<string> message = new();
+                        foreach (BaseItem item in Items.Values)
+                        {
+                            message.Add($"{item.Id} {item.Name}");
+                        }
+
+                        x.SendMessageAsync(string.Join("\n", message));
+                    }
+
+                    break;
                 default:
                     if (strMess.StartsWith("使用"))
                     {
-                        string ItemName = strMess[2..];
-                        int count = ItemName.GetCount(ref ItemName);
+                        string itemName = strMess[2..];
+                        int count = itemName.GetCount(ref itemName);
                         Player player = Player.Register(x);
                         BaseItem? item;
 
@@ -633,11 +645,11 @@ namespace OpenPetsWorld
                                 break;
                             }
 
-                            item = FindItem(ItemName[..count]);
+                            item = FindItem(itemName[..count]);
                         }
                         else
                         {
-                            item = FindItem(ItemName);
+                            item = FindItem(itemName);
                         }
 
 
@@ -654,12 +666,43 @@ namespace OpenPetsWorld
                         }
 
                         item.Use(x, count);
-                        //UseItemEvent(GroupId, MemberId, item, count);
                     }
+                    /*else if (strMess.StartsWith("奖励") && memberId == MasterId)
+                    {
+                        string itemName = strMess[2..];
+                        int count = ItemName.GetCount(ref ItemName);
+                        
+                        if (count != -1)
+                        {
+                            if (count == 0)
+                            {
+                                x.SendAtMessage("格式错误！");
+                                break;
+                            }
+
+                            if (count > 99999)
+                            {
+                                x.SendAtMessage("数量超出范围！");
+                                break;
+                            }
+
+                            item = FindItem(itemName[..count]);
+                        }
+                        BaseItem? item = FindItem(itemName);
+                        if (item == null)
+                        {
+                            x.SendAtMessage("该道具并不存在，请检查是否输错！");
+                            break;
+                        }
+
+                        player.Bag.MergeValue(item.Id, 1);
+
+                        await x.SendMessageAsync($"已给予{itemName}");
+                    }*/
                     else if (strMess.StartsWith("查看"))
                     {
-                        string ItemName = strMess[2..];
-                        BaseItem? item = FindItem(ItemName);
+                        string itemName = strMess[2..];
+                        BaseItem? item = FindItem(itemName);
                         if (item == null)
                         {
                             x.SendAtMessage("此物品不存在，或者输入错误！");
@@ -676,6 +719,10 @@ namespace OpenPetsWorld
 
                         builder.Plain(item.description ?? "该物品无描述");
 
+                        #if DEBUG
+                        builder.Plain(item.GetType().ToString());
+                        #endif
+                        
                         await x.SendMessageAsync(builder.Build());
                     }
                     else if (strMess.StartsWith("宠物副本"))
@@ -782,28 +829,11 @@ namespace OpenPetsWorld
                         Players[groupId][memberId] = player;
                         Players[groupId][target] = tPlayer;
                     }
-                    else if (strMess.StartsWith("给予") && memberId == MasterId)
-                    {
-                        Player player = Player.Register(x);
-                        string itemName = strMess[2..];
-                        BaseItem? item = FindItem(itemName);
-                        if (item == null)
-                        {
-                            x.SendAtMessage("该道具并不存在，请检查是否输错！");
-                            break;
-                        }
-
-                        player.Bag.TryAdd(item.Id, 0);
-
-                        Players[groupId][memberId].Bag[item.Id]++;
-                        await x.SendMessageAsync($"已给予{itemName}");
-                    }
-
                     break;
             }
         }
 
-        public static void CoverWriteLine(string text = "")
+        public static void CoverLine(string text = "")
         {
             Console.SetCursorPosition(0, Console.CursorTop);
             Console.WriteLine(text);
@@ -868,18 +898,15 @@ namespace OpenPetsWorld
             return null;
         }
 
-        static string GetQNumber()
+        private static string GetQNumber()
         {
-            ReInput:
-            Console.Write("QQ号：");
-            string? qqNumber = Console.ReadLine();
-            if (!long.TryParse(qqNumber, out _))
+            for (;;)
             {
+                Console.Write("QQ号：");
+                string? qqNumber = Console.ReadLine();
+                if (long.TryParse(qqNumber, out _)) return qqNumber;
                 Console.WriteLine("请输入正确的QQ号！");
-                goto ReInput;
             }
-
-            return qqNumber;
         }
 
         private static void Reload()

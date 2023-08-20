@@ -34,7 +34,7 @@ public class Player
     /// <summary>
     /// 背包
     /// </summary>
-    public Dictionary<int, int> Bag = new();
+    public readonly Dictionary<int, int> Bag = new();
 
     /// <summary>
     /// 宠物
