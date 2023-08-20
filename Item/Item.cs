@@ -10,7 +10,7 @@ namespace OpenPetsWorld.Item;
 /// </summary>
 public class BaseItem
 {
-    public int Id = 0;
+    public int Id;
 
     /// <summary>
     /// 名称

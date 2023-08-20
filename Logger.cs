@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld
@@ -29,7 +30,13 @@ namespace OpenPetsWorld
         private void Out(string message, string level)
         {
             string time = DateTime.Now.ToString("HH:mm:ss");
-            CoverWriteLine($"[{time}] [{level}]: {message}");
+            LogCoverLine($"[{time}] [{level}]: {message}");
+        }
+        
+        private static void LogCoverLine(string text = "")
+        {
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Debug.WriteLine(text);
         }
     }
 }
