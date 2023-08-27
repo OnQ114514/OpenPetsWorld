@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Mirai.Net.Data.Messages.Receivers;
 using OpenPetsWorld.Item;
 using static OpenPetsWorld.OpenPetsWorld;
@@ -55,6 +56,7 @@ public class Pet
         #endregion
     }
 
+    [JsonIgnore]
     public int Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
 
     public string GetMoodSymbol()
@@ -90,6 +92,7 @@ public class Pet
 
     public int Damage(Pet myPet)
     {
+        
         return (myPet.Attack + myPet.Intellect * 20) *
                (1 - (Defense * Intellect * 20) / (Attack + Defense + Health / 10 + Intellect * 20));
     }
@@ -98,7 +101,6 @@ public class Pet
     {
         if (Artifact.Id == -1)
         {
-            receiver.SendAtMessage("你的宠物还未佩戴神器！");
             return false;
         }
         Player player = Player.Register(receiver);

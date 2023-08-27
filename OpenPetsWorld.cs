@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Manganese.Text;
+using Newtonsoft.Json;
 using Mirai.Net.Data.Messages.Receivers;
 using static OpenPetsWorld.Program;
 using File = System.IO.File;
@@ -8,17 +9,19 @@ namespace OpenPetsWorld
 {
     public static class OpenPetsWorld
     {
-        public static string[] Ranks = { "普通", "精品", "稀有", "史诗", "传说" };
         public static readonly string[] SignTexts = { "奖励积分", "累签", "连签" };
-        public static string[] Attributes = { "金", "木", "水", "火", "土" };
-        public static string[] UnitingPlace =
-            { "神魔之井", "霹雳荒原", "石爪山脉", "燃烧平原", "诅咒之地", "洛克莫丹", "天山血池", "银松森林", "闪光平原" };
+        public static string[] Ranks = Array.Empty<string>();
+        public static string[] Attributes = Array.Empty<string>();
+        public static string[] UnitingPlace = Array.Empty<string>();
+
+        public static int BreaksTime = 120;
 
         public static readonly Dictionary<string, long> SentTime = new();
         public static Dictionary<string, Dictionary<string, Player>> Players = new();
         public static Dictionary<int, BaseItem> Items = new();
         public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
+        public static Shop PointShop = new();
         
         public static bool HavePet(GroupMessageReceiver x, bool send = true)
         {
@@ -101,19 +104,22 @@ namespace OpenPetsWorld
         {
             #region 杂项
 
+            Log.Info("读取杂项数据中…");
             string MiscPath = "./datapack/misc.json";
-            Misc misc = (Misc)TryRead<Misc>(MiscPath);
+            Misc misc = TryRead<Misc>(MiscPath);
             if (misc != null)
             {
                 Ranks = misc.Ranks;
                 UnitingPlace = misc.UnitingPlace;
                 Attributes = misc.Attributes;
+                BreaksTime = misc.BreaksTime;
             }
 
             #endregion
 
             #region 物品数据
 
+            Log.Info("读取物品数据中…");
             string itemsDataPath = "./datapack/Items.json";
             if (File.Exists(itemsDataPath))
             {
@@ -128,7 +134,8 @@ namespace OpenPetsWorld
 
             #region 玩家数据
 
-            string playersDataPath = "./data/PlayersData.json";
+            Log.Info("读取玩家数据中…");
+            string playersDataPath = "./data/players.json";
             var lPlayerData = TryRead<Dictionary<string, Dictionary<string, Player>>>(playersDataPath);
             if (lPlayerData != null)
             {
@@ -138,7 +145,8 @@ namespace OpenPetsWorld
             #endregion
 
             #region 宠物池
-
+            
+            Log.Info("读取宠物池数据中…");
             string petPoolPath = "./datapack/PetPool.json";
             var lPetPool = TryRead<List<Pet>>(petPoolPath);
             if (lPetPool != null)
@@ -150,6 +158,7 @@ namespace OpenPetsWorld
 
             #region 副本数据
 
+            Log.Info("读取副本数据中…");
             string replicaPath = "./datapack/replicas.json";
             if (File.Exists(replicaPath))
             {
@@ -157,6 +166,22 @@ namespace OpenPetsWorld
                 if (lReplicaData != null)
                 {
                     Replicas = lReplicaData;
+                }
+            }
+
+            #endregion
+
+            #region 商品数据
+
+            Log.Info("读取商品数据中…");
+            string pointShopPath = "./datapack/pointshop.json";
+            if (File.Exists(pointShopPath))
+            {
+                var lCommData = TryRead<Shop>(pointShopPath);
+                if (lCommData != null)
+                {
+                    lCommData.Initialize();
+                    PointShop = lCommData;
                 }
             }
 
@@ -206,8 +231,8 @@ namespace OpenPetsWorld
         {
             #region 玩家数据
 
-            string playerJson = JsonConvert.SerializeObject(Players);
-            string path = "./data/PlayersData.json";
+            string playerJson = Players.ToJsonString();
+            string path = "./data/players.json";
             if (!Directory.Exists("./data"))
             {
                 Directory.CreateDirectory("./data");
@@ -219,44 +244,5 @@ namespace OpenPetsWorld
         }
 
         #endregion
-        
-        public class Replica
-        {
-            public int Level = 0;
-            public string Name;
-            public Dictionary<int, int> RewardingItems = new();
-            public int RewardingPoint = 0;
-            public int ExpAdd;
-            public string enemyName;
-            public int Attack;
-            public int Energy = 10;
-            public string? IconName = null;
-
-            public bool Challenge(Player player, int count)
-            {
-                if (player.Pet == null || player.Pet.Energy < count * Energy)
-                {
-                    return false;
-                }
-
-                player.Pet.Health -= Attack * count;
-                player.Pet.Energy -= Energy * count;
-                player.Pet.Experience += ExpAdd * count;
-                player.Points += RewardingPoint * count;
-                foreach (var item in RewardingItems)
-                {
-                    if (!player.Bag.ContainsKey(item.Key))
-                    {
-                        player.Bag[item.Key] = item.Value;
-                    }
-                    else
-                    {
-                        player.Bag[item.Key] += item.Value;
-                    }
-                }
-
-                return true;
-            }
-        }
     }
 }

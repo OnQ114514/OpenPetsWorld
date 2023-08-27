@@ -63,6 +63,23 @@ public class Player
         return Players[groupId][memberId];
     }
 
+    public bool Buy(int id, int count)
+    {
+        int price = PointShop[id] * count;
+        if (Points < price)
+        {
+            return false;
+        }
+        Points -= price;
+        Bag.MergeValue(id, count);
+        return true;
+    }
+
+    public void Activity()
+    {
+        LastActivityUnixTime = GetNowUnixTime();
+    }
+    
     public bool CanActivity(GroupMessageReceiver receiver)
     {
         return CanActivity(receiver.GroupId, receiver.Sender.Id);
@@ -70,7 +87,7 @@ public class Player
 
     public bool CanActivity(string groupId, string memberId)
     {
-        if (GetNowUnixTime() - LastActivityUnixTime > 120 || (LastActivityUnixTime == 0))
+        if (GetNowUnixTime() - LastActivityUnixTime > BreaksTime || (LastActivityUnixTime == 0))
         {
             return HavePet(groupId, memberId);
         }

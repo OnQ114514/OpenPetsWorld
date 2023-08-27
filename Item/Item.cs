@@ -21,23 +21,41 @@ public class BaseItem
     /// 类型
     /// </summary>
     public ItemType ItemType;
-
+    
+    private string? _description;
+    
     /// <summary>
     /// 描述
     /// </summary>
-    public string? description;
+    public string? Description 
+    {
+        set => _description = value;
+        get
+        {
+            var text = _description ?? "无该物品描述";
+            return text;
+        } 
+    }
 
     /// <summary>
     /// 描述附加图片
     /// </summary>
-    public string? descriptionImageName = null;
+    public string? DescriptionImageName = null;
 
     /// <summary>
     /// 最低使用等级
     /// </summary>
     public int Level = 0;
 
+    /// <summary>
+    /// 配方
+    /// </summary>
     public Formulation? Formulation;
+
+    /// <summary>
+    /// 可交易
+    /// </summary>
+    public bool CanTrade = true;
 
     public virtual bool Use(GroupMessageReceiver receiver, int count)
     {
@@ -107,6 +125,9 @@ public class BaseItem
     }
 }
 
+/// <summary>
+/// 材料
+/// </summary>
 public class Material : BaseItem
 {
     public Material()
@@ -285,6 +306,9 @@ public class Gain : BaseItem
     public int Defense = 0;
     public int Intellect = 0;
     public int Health = 0;
+    public int Points = 0;
+    public int Experience = 0;
+    public int MaxEnergy = 0;
 
     public Gain()
     {
@@ -295,34 +319,30 @@ public class Gain : BaseItem
     {
         if (base.Use(receiver, count))
         {
-            Pet pet = Player.Register(receiver).Pet;
+            Player player = Player.Register(receiver);
+            Pet pet = player.Pet;
             List<string> message = new()
             {
                 $"成功使用[{Name}] ×{count}，触发以下效果："
             };
-            if (Attack != 0)
-            {
-                message.Add($"◇攻击永久提升：{Attack}");
-            }
-
-            if (Defense != 0)
-            {
-                message.Add($"◇防御永久提升：{Defense}");
-            }
-
-            if (Intellect != 0)
-            {
-                message.Add($"◇智力永久提升：{Intellect}");
-            }
-
-            if (Health != 0)
-            {
-                message.Add($"◇生命永久提升：{Health}");
-            }
+            
+            if (Attack != 0) message.Add($"◇攻击永久提升：{Attack}");
+            if (Defense != 0) message.Add($"◇防御永久提升：{Defense}");
+            if (Intellect != 0) message.Add($"◇智力永久提升：{Intellect}");
+            if (Health != 0) message.Add($"◇生命永久提升：{Health}");
+            if (Health != 0) message.Add($"◇精力永久提升：{MaxEnergy}");
+            if (Experience != 0) message.Add($"◇获得经验：{Experience}");
+            if (Points != 0) message.Add($"◇获得积分：{Points}");
+            
             pet.Attack += Attack;
             pet.Defense += Defense;
             pet.Intellect += Intellect;
             pet.Health += Health;
+            pet.Experience += Experience;
+            pet.MaxEnergy += MaxEnergy;
+
+            player.Points += Points;
+            
             receiver.SendAtMessage(string.Join("\n", message));
             return true;
         }

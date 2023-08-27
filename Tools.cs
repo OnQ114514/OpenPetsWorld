@@ -1,22 +1,15 @@
 ﻿using System.Drawing;
+using Mirai.Net.Data.Messages;
 using static OpenPetsWorld.Program;
+using static OpenPetsWorld.OpenPetsWorld;
 using Mirai.Net.Data.Messages.Receivers;
 using Mirai.Net.Utils.Scaffolds;
+using OpenPetsWorld.Item;
 
 namespace OpenPetsWorld
 {
     internal static class Tools
     {
-        public static void Fill(this Graphics v, Color color, Image image)
-        {
-            v.FillRectangle(new SolidBrush(color), new Rectangle(0, 0, image.Width, image.Height));
-        }
-
-        public static void Fill(this Graphics v, Brush brush, Image image)
-        {
-            v.FillRectangle(brush, new Rectangle(0, 0, image.Width, image.Height));
-        }
-
         public static void ClearText(this Graphics v)
         {
             v.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
@@ -34,15 +27,18 @@ namespace OpenPetsWorld
 
         public static List<T> SafeGetRange<T>(this List<T> list, int index, int count)
         {
-            int tryCount = list.Count - index;
-            if (tryCount > count)
+            int availableCount = list.Count - index;
+            int rangeCount = Math.Min(count, availableCount);
+
+            if (rangeCount <= 0)
             {
-                return list.GetRange(index, count);
+                // 如果范围中的元素数小于等于0，则返回一个空列表
+                return new List<T>();
             }
 
-            return list.GetRange(index, tryCount);
+            return list.GetRange(index, rangeCount);
         }
-        
+
         public static long ToUnixTime(this DateTime dateTime)
         {
             return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
@@ -56,6 +52,13 @@ namespace OpenPetsWorld
             }
         }
 
+        /*public static int GetDayCount()
+        {
+            DateTime time = DateTime.Now;
+            int day = DateTime.DaysInMonth(time.Year, time.Month);
+            return day;
+        }*/
+
         public static string ToSignedString(this int value)
         {
             if (value > 0)
@@ -66,13 +69,13 @@ namespace OpenPetsWorld
             return value.ToString();
         }
         
-        //TODO:优化以下方法
         public static int GetCount(this string v, string symbol = "*")
         {
             if (v == string.Empty)
             {
                 return -1;
             }
+
             string value = v[v.Length..];
             if (value.Contains(symbol))
             {
@@ -89,13 +92,39 @@ namespace OpenPetsWorld
             return -1;
         }
 
-        public static int GetCount(this string v, ref string item, string symbol = "*")
+        public static int GetICT(this MessageChain v, int skipCount, ref string item, out string? target)
         {
-            if (v == string.Empty)
+            target = null;
+            string symbol = "*";
+            var str = v.GetPlainMessage()[skipCount..];
+            int result;
+            int targetIndex = str.IndexOf("-", StringComparison.Ordinal);
+            if (targetIndex != -1)
+            {
+                result = str.GetCount(symbol[..targetIndex]);
+                var succeed = long.TryParse(str[(targetIndex + 1)..], out long number);
+                target = succeed ? number.ToString() : GetAtNumber(v);
+            }
+            else
+            {
+                result = str.GetCount(symbol);
+            }
+
+            int countIndex = str.IndexOf(symbol, StringComparison.Ordinal);
+            item = countIndex != -1 ? str[..countIndex] : str;
+
+            if (str == string.Empty && result == -1)
             {
                 return -1;
             }
-            int index = v.IndexOf("*", StringComparison.Ordinal);
+            
+            return 1;
+
+            /*if (v == string.Empty)
+            {
+                return -1;
+            }
+
             if (index != -1)
             {
                 if (int.TryParse(v[(index + 1)..], out int count))
@@ -109,7 +138,7 @@ namespace OpenPetsWorld
                 }
             }
 
-            return -1;
+            return -1;*/
         }
     }
 }
