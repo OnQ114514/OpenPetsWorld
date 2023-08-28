@@ -7,10 +7,10 @@ namespace OpenPetsWorld;
 /// </summary>
 public class Logger
 {
-    /*public Logger()
+    public Logger()
     {
 
-    }*/
+    }
         
     public Logger(string path)
     {

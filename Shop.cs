@@ -31,11 +31,11 @@ public class Shop
         }).ToList().SafeGetRange(count - 1, 10);
         
         Bitmap bitmap = new(480, 600);
-        Graphics graphics = Graphics.FromImage(bitmap);
-        Font font = new("微软雅黑", 22);
+        using var graphics = Graphics.FromImage(bitmap);
+        using Font font = new("微软雅黑", 22);
+        using Pen pen = new(Color.Black, 3);
         graphics.Clear(Color.White);
         graphics.DrawString("宠物商店", font, Black, 10, 5);
-        Pen pen = new(Color.Black, 3);
         graphics.DrawLine(pen, 130, 22, 480, 22);
         graphics.DrawLine(pen, 0, 465, 275, 465);
         graphics.DrawString($"页数：{count}/{_pagesCount}", font, Black, 280, 445);

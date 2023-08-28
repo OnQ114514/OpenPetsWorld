@@ -1,4 +1,5 @@
-﻿using Manganese.Text;
+﻿using System.Drawing;
+using Manganese.Text;
 using Newtonsoft.Json;
 using Mirai.Net.Data.Messages.Receivers;
 using static OpenPetsWorld.Program;
@@ -22,6 +23,8 @@ namespace OpenPetsWorld
         public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
         public static Shop PointShop = new();
+
+        public static Image? Wallpaper;
         
         public static bool HavePet(GroupMessageReceiver x, bool send = true)
         {
@@ -102,6 +105,16 @@ namespace OpenPetsWorld
 
         public static void ReadData()
         {
+            #region 宠物背景
+
+            string wallpaperPath = "./datapack/wallpaper.jpg";
+            if (File.Exists(wallpaperPath))
+            {
+                Wallpaper = Image.FromFile(wallpaperPath);
+            }
+
+            #endregion
+            
             #region 杂项
 
             Log.Info("读取杂项数据中…");
