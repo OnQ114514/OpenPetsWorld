@@ -1,3 +1,5 @@
+![logo](logo.png)
+
 OpenPetsWorld
 ====
 OpenPetsWorld是一个第三方开源宠物世界实现，使用Mirai.Net  

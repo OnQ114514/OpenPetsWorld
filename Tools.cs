@@ -59,6 +59,27 @@ namespace OpenPetsWorld
             return day;
         }*/
 
+        public static string ToFormat(this int v)
+        {
+            const int hundredMillion = 100000000;
+            const int tenThousand = 10000;            
+            const string format = "0.0";
+            decimal origin = v;
+            
+            if (v >= hundredMillion)
+            {
+                return (origin / hundredMillion).ToString(format) + "E";
+            }
+            else if (v >= tenThousand)
+            {
+                return (origin / tenThousand).ToString(format) + "W";
+            }
+            else
+            {
+                return v.ToString();
+            }
+        }
+        
         public static string ToSignedString(this int value)
         {
             if (value > 0)

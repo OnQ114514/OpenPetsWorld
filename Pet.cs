@@ -21,7 +21,7 @@ public class Pet
     public string Attribute;
     public string Rank;
     public string State = "正常";
-    public string IconName;
+    public string? IconName;
     public string PettAlent = "无";
     public int Intellect = 4;
     public int Attack = 10;

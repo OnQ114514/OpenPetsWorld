@@ -46,7 +46,7 @@ public class Logger
     private static void LogCoverLine(string text = "")
     {
         Console.SetCursorPosition(0, Console.CursorTop);
-        Debug.WriteLine(text);
+        Trace.WriteLine(text);
         Console.Write("> ");
     }
 }

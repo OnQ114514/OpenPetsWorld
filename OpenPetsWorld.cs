@@ -24,7 +24,7 @@ namespace OpenPetsWorld
         public static List<Replica> Replicas = new();
         public static Shop PointShop = new();
 
-        public static Image? Wallpaper;
+        public static Image Wallpaper = new Bitmap(650, 500);
         
         public static bool HavePet(GroupMessageReceiver x, bool send = true)
         {
@@ -52,7 +52,7 @@ namespace OpenPetsWorld
             return false;
         }
 
-        public static bool HavePet(string groupId, string memberId, out Pet? petData, bool send = true)
+        private static bool HavePet(string groupId, string memberId, out Pet? petData, bool send = true)
         {
             if (HavePet(groupId, memberId, send))
             {
@@ -76,9 +76,7 @@ namespace OpenPetsWorld
 
         public static BaseItem? FindItem(string itemName)
         {
-            var items = (from litems in Items.Values
-                where litems.Name == itemName
-                select litems).ToList();
+            var items = Items.Values.Where(litems => litems.Name == itemName).ToList();
             if (items.Count != 0)
             {
                 return items[0];
@@ -201,7 +199,7 @@ namespace OpenPetsWorld
             #endregion
         }
 
-        private static T? TryRead<T>(string dataPath) where T : class
+        public static T? TryRead<T>(string dataPath) where T : class
         {
             if (File.Exists(dataPath))
             {
