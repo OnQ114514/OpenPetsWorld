@@ -1,4 +1,5 @@
 using Mirai.Net.Data.Messages.Receivers;
+using OpenPetsWorld.PetTool;
 using static OpenPetsWorld.Program;
 using static OpenPetsWorld.OpenPetsWorld;
 
@@ -75,9 +76,18 @@ public class Player
         return true;
     }
 
-    public void Activity()
+    public bool Activity(GroupMessageReceiver receiver, int energy)
     {
+        if (!CanActivity(receiver)) return false;
         LastActivityUnixTime = GetNowUnixTime();
+        if (Pet.Energy < energy)
+        {
+            //receiver.SendAtMessage("");
+            return false;
+        }
+        
+        Pet.Energy -= energy;
+        return true;
     }
     
     public bool CanActivity(GroupMessageReceiver receiver)
@@ -85,7 +95,7 @@ public class Player
         return CanActivity(receiver.GroupId, receiver.Sender.Id);
     }
 
-    public bool CanActivity(string groupId, string memberId)
+    private bool CanActivity(string groupId, string memberId)
     {
         if (GetNowUnixTime() - LastActivityUnixTime > BreaksTime || (LastActivityUnixTime == 0))
         {

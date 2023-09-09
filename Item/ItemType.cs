@@ -6,7 +6,8 @@ public enum ItemType
     Artifact,
     Resurrection,
     Recovery,
-    Gain
+    Gain,
+    Pet
 }
 
 public static class Converter

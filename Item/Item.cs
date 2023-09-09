@@ -1,5 +1,6 @@
 using Mirai.Net.Data.Messages.Receivers;
 using OpenPetsWorld.Extra;
+using OpenPetsWorld.PetTool;
 using static OpenPetsWorld.OpenPetsWorld;
 using static OpenPetsWorld.Program;
 
@@ -347,6 +348,26 @@ public class Gain : BaseItem
             return true;
         }
 
+        return false;
+    }
+}
+
+/// <summary>
+/// 宠物
+/// </summary>
+public class PetItem : BaseItem
+{
+    private Pet _pet;
+
+    public override bool Use(GroupMessageReceiver receiver, int count)
+    {
+        var player = Player.Register(receiver);
+        if (player.Pet == null)
+        {
+            player.Pet = _pet;
+            return true;
+        }
+        
         return false;
     }
 }

@@ -30,6 +30,7 @@ public class ItemConverter : JsonConverter
                 ItemType.Resurrection => token.ToObject<Resurrection>(),
                 ItemType.Recovery => token.ToObject<Recovery>(),
                 ItemType.Gain => token.ToObject<Gain>(),
+                ItemType.Pet => token.ToObject<PetItem>(),
                 _ => throw new ArgumentOutOfRangeException()
             };
             

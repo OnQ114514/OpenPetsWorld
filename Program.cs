@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using static OpenPetsWorld.OpenPetsWorld;
 using Timer = System.Timers.Timer;
 using OpenPetsWorld.Item;
+using OpenPetsWorld.PetTool;
 
 namespace OpenPetsWorld
 {
@@ -40,14 +41,14 @@ namespace OpenPetsWorld
 
         #endregion
 
-        private static readonly Font Font = new("微软雅黑", 20, FontStyle.Regular);
+        public static readonly Font YaHei = new("微软雅黑", 20, FontStyle.Regular);
         public static readonly Brush Black = Brushes.Black;
         private static string? _address;
         private static string? _verifyKey;
         private static string? _qqNumber;
         private static List<string> _groupList = new();
         private static HashSet<string> _notRunningGroup = new();
-        private static bool _blackListMode = false;
+        private static bool _blackListMode;
         private static string _masterId = "58554566";
         private static List<string> _admins = new();
         private static readonly HttpClient HttpClient = new();
@@ -194,7 +195,7 @@ namespace OpenPetsWorld
                 Enabled = true,
                 AutoReset = true
             };
-            timer.Elapsed += EnergyRecovery;
+            timer.Elapsed += NewEnergyRecovery;
 
             try
             {
@@ -217,71 +218,92 @@ namespace OpenPetsWorld
             {
                 Console.SetCursorPosition(0, Console.CursorTop);
                 Console.Write("> ");
-                string? input = Console.ReadLine();
-                switch (input)
+                string input = Console.ReadLine() ?? string.Empty;
+                string[] commands = input.Split(' ');
+                switch (commands[0])
                 {
-                    case "/clearconfig":
+                    case "clearconfig":
                         File.Delete("./config.txt");
                         Console.WriteLine("已清除配置");
                         break;
-                    case "/stop":
+                    case "stop":
                         WriteConfig();
                         SaveData();
                         KeysExit();
                         break;
-                    case "/stop!":
+                    case "stop!":
                         return;
-                    case "/help":
+                    case "help":
                         Console.WriteLine("——————帮助菜单——————\n" +
                                           "/clearconfig 清除配置文件\n" +
                                           "/stop 退出程序\n" +
                                           "/stop! 不保存数据退出\n" +
-                                          "/AddGroup {群号} 添加群\n" +
-                                          "/DelGroup {群号} 删除群\n" +
-                                          "/GroupList 列出所有已添加群");
+                                          "/save 保存数据\n" +
+                                          "/reload 热重载" +
+                                          "/group add {群号} 添加群\n" +
+                                          "/group del {群号} 删除群\n" +
+                                          "/group list 列出所有已添加群");
                         break;
-                    case "/GroupList":
-                        Console.WriteLine(string.Join("\n", _groupList));
+                    case "group":
+                        if (commands.Length <= 1)
+                        {
+                            CoverLine("参数不足");
+                            break;
+                        }
+
+                        switch (commands[1])
+                        {
+                            case "list":
+                                Console.WriteLine(string.Join("\n", _groupList));
+                                break;
+                            case "add":
+                            {
+                                if (commands.Length < 3)
+                                {
+                                    CoverLine("参数不足");
+                                    break;
+                                }
+
+                                string groupId = commands[2];
+                                if (!long.TryParse(groupId, out _))
+                                {
+                                    Console.WriteLine("请输入正确的群号！");
+                                    break;
+                                }
+
+                                _groupList.Add(groupId);
+                                break;
+                            }
+                            case "del":
+                            {
+                                if (commands.Length < 3)
+                                {
+                                    CoverLine("参数不足");
+                                    break;
+                                }
+
+                                string groupId = input[10..];
+                                if (!long.TryParse(groupId, out _) && !_groupList.Remove(groupId))
+                                {
+                                    Console.WriteLine("请输入正确的群号！");
+                                }
+
+                                break;
+                            }
+                        }
+                        
                         break;
-                    case "/reload":
+                    case "reload":
                         Reload();
                         Console.WriteLine("已重载数据");
                         break;
-                    case "/save":
+                    case "save":
                         WriteConfig();
                         SaveData();
                         break;
                     case "":
                         break;
                     default:
-                        if (input == null)
-                        {
-                            break;
-                        }
-
-                        if (input.StartsWith("/AddGroup "))
-                        {
-                            string lGroupId = input[10..];
-                            if (!long.TryParse(lGroupId, out _))
-                            {
-                                Console.WriteLine("请输入正确的群号！");
-                                break;
-                            }
-
-                            _groupList.Add(lGroupId);
-                            break;
-                        }
-                        else if (input.StartsWith("/DelGroup "))
-                        {
-                            string lGroupId = input[10..];
-                            if (!long.TryParse(lGroupId, out _) && !_groupList.Remove(lGroupId))
-                            {
-                                Console.WriteLine("请输入正确的群号！");
-                            }
-
-                            break;
-                        }
-
                         Console.WriteLine($"未知命令\"{input}\"，请输入/help查看命令");
                         break;
                 }
@@ -345,53 +367,7 @@ namespace OpenPetsWorld
                 {
                     if (HavePet(x, out Pet? pet))
                     {
-                        using var image = (Image)Wallpaper.Clone();
-                        using var graphics = Graphics.FromImage(image);
-
-                        string iconPath = $"./datapack/peticon/{pet.IconName}";
-                        if (pet.IconName != null && File.Exists(iconPath))
-                        {
-                            graphics.DrawImage(Image.FromFile(iconPath), 5, 5, 380, 380);
-                        }
-
-                        string[] abTexts =
-                        {
-                            $"心情:{pet.GetMoodSymbol()}",
-                            $"精力:{pet.Energy}/{pet.MaxEnergy}",
-                            $"血量:{pet.Health}/{pet.MaxHealth}",
-                            $"经验:{pet.Experience}/{pet.MaxExperience}"
-                        };
-                        int n = 390;
-                        foreach (string abText in abTexts)
-                        {
-                            graphics.DrawString(abText, Font, Black, 15, n);
-                            n += 25;
-                        }
-
-                        string[] abTexts2 =
-                        {
-                            $"等级:{pet.Level}",
-                            $"昵称:{pet.Name}",
-                            $"性别:{pet.Gender}",
-                            $"阶段:{pet.Stage}",
-                            $"属性:{pet.Attribute}",
-                            $"级别:{pet.Rank}",
-                            $"状态:{pet.State}",
-                            $"神器:{pet.Artifact.Name}",
-                            $"天赋:{pet.PettAlent}",
-                            $"战力:{pet.Power}",
-                            $"智力:{pet.Intellect}",
-                            $"攻击:{pet.Attack}",
-                            $"防御:{pet.Defense}"
-                        };
-
-                        int n2 = 20;
-                        foreach (string abText in abTexts2)
-                        {
-                            graphics.DrawString("◆" + abText, Font, Black, 395, n2);
-                            n2 += 35;
-                        }
-
+                        var image = pet.Render();
                         x.SendBmpMessage(image);
                     }
 
@@ -432,16 +408,14 @@ namespace OpenPetsWorld
                 }
                 case "修炼":
                 {
-                    Player player = Player.Register(x);
-                    if (player.CanActivity(x) && HavePet(x))
+                    var player = Player.Register(x);
+                    if (HavePet(x, out Pet? pet))
                     {
-                        player.LastActivityUnixTime = GetNowUnixTime();
-                        Pet? petData = player.Pet;
-                        petData.Energy -= 10;
+                        if (player.Activity(x, 10)) break;
                         int addExp = Random.Next(250, 550);
-                        petData.Experience += addExp;
+                        pet.Experience += addExp;
                         SendAtMessage(groupId, memberId,
-                            $"您的【{petData.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+120秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
+                            $"您的【{pet.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+120秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
                     }
 
                     break;
@@ -449,14 +423,12 @@ namespace OpenPetsWorld
                 case "学习":
                 {
                     Player player = Player.Register(x);
-                    if (player.CanActivity(x) && HavePet(x))
+                    if (HavePet(x, out Pet? pet))
                     {
-                        player.LastActivityUnixTime = GetNowUnixTime();
-                        Pet? petData = Players[groupId][memberId].Pet;
-                        petData.Energy -= 10;
-                        petData.Intellect += Random.Next(2, 6);
+                        if (player.Activity(x, 10)) break;
+                        pet.Intellect += Random.Next(2, 6);
                         SendAtMessage(groupId, memberId,
-                            $"您的【{petData.Name}】出门上学啦！\n------------------\n●学习耗时：+120秒\n●减少精力：-10点\n●获得智力：+2\n------------------");
+                            $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+120秒\n●减少精力：-10点\n●获得智力：+2\n------------------");
                     }
 
                     break;
@@ -464,30 +436,57 @@ namespace OpenPetsWorld
                 case "洗髓":
                 {
                     Player player = Player.Register(x);
-                    if (player.CanActivity(x))
-                    {
-                        player.LastActivityUnixTime = GetNowUnixTime();
-                        Pet? petData = player.Pet;
-                        petData.Energy -= 10;
-                        petData.Intellect--;
+                    if (HavePet(x, out Pet? pet))
+                    {                       
+                        if (player.Activity(x, 10)) break;
+                        pet.Intellect--;
                         bool addAtt = RandomBool();
                         int addAttNumber = Random.Next(10, 18);
                         string addAttText = addAtt ? "攻击" : "防御";
                         if (addAtt)
                         {
-                            petData.Attack += addAttNumber;
+                            pet.Attack += addAttNumber;
                         }
                         else
                         {
-                            petData.Defense += addAttNumber;
+                            pet.Defense += addAttNumber;
                         }
 
                         x.SendAtMessage(
-                            $"您的【{petData.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+120秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttNumber}\n------------------");
+                            $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+120秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttNumber}\n------------------");
                     }
 
                     break;
                 }
+                case "宠物进化":
+                {
+                    if (HavePet(x, out var pet))
+                    {
+                        int statusCode = pet.Evolved(out int level);
+                        switch (statusCode)
+                        {
+                            case 0:
+                                MessageChainBuilder builder = new();
+                                string path = Path.GetFullPath($"./datapack/peticon/{pet.IconName}");
+                                if (pet.IconName != null) builder.ImageFromPath(path);
+                                builder.At(memberId).Plain($" 你的{pet.Name}成功进化至[LV·{level}级]{pet.Stage.ToStr()}·{pet.Name}]！");
+                                await x.SendMessageAsync(builder.Build());
+                                break;
+                            case -1:
+                                x.SendAtMessage("你的宠物暂时无法进化哦！");
+                                break;
+                            case -2:
+                                x.SendAtMessage($"你的[{pet.Name}]已达到最高进化形态！！！");
+                                break;
+                            case -3:
+                                x.SendAtMessage($"你的[{pet.Name}]等级不足"/*,以下为进化流程："*/);
+                                break;
+                        }
+                    }
+
+                    break;
+                }
+                //TODO:支持多级升级
                 case "宠物升级":
                     if (HavePet(x))
                     {
@@ -615,10 +614,10 @@ namespace OpenPetsWorld
                     using Font font = new("Microsoft YaHei", 23, FontStyle.Bold);
                     graphics.Clear(Color.White);
                     graphics.DrawString($"[{memberId}]您的财富信息如下：", font, Black, 2, 2);
-                    graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 55), new Point(480, 55));
+                    graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
                     graphics.DrawString($"●积分：{player.Points}", font, Black, 0, 65);
                     graphics.DrawString($"●点券：{player.Bonds}", font, Black, 0, 125);
-                    graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 180), new Point(480, 180));
+                    graphics.DrawLine(new(Color.Black, 3), new(0, 180), new(480, 180));
                     x.SendBmpMessage(bitmap);
                     break;
                 }
@@ -652,7 +651,7 @@ namespace OpenPetsWorld
                     using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
                     graphics.Clear(Color.White);
                     graphics.DrawString($"[{memberId}]您的背包：", font, Black, 2, 2);
-                    graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 55), new Point(480, 55));
+                    graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
                     int i = 65;
                     foreach (string itemStr in bagItemList)
                     {
@@ -660,7 +659,7 @@ namespace OpenPetsWorld
                         i += 38;
                     }
 
-                    graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, height - 30), new Point(480, height - 30));
+                    graphics.DrawLine(new(Color.Black, 3), new(0, height - 30), new(480, height - 30));
                     x.SendBmpMessage(imageData);
 
                     #endregion
@@ -683,9 +682,9 @@ namespace OpenPetsWorld
                 default:
                     if (strMess.StartsWith("使用"))
                     {
-                        string itemName = strMess[2..];
                         Player player = Player.Register(x);
-                        int count = originalMess.GetICT(2, ref itemName, out string? target);
+                        //int count = originalMess.GetICT(2, ref itemName, out string? target);
+                        Tools.ParseString(originalMess, 2, out string itemName, out int count, out string? target);
 
                         if (count != -1)
                         {
@@ -710,11 +709,7 @@ namespace OpenPetsWorld
                             break;
                         }
 
-                        if (!player.Bag.ContainsKey(item.Id))
-                        {
-                            player.Bag[item.Id] = 0;
-                            Players[groupId][memberId] = player;
-                        }
+                        player.Bag.TryAdd(item.Id, 0);
 
                         item.Use(x, count);
                     }
@@ -747,9 +742,9 @@ namespace OpenPetsWorld
                             break;
                         }
 
-                        if (PointShop.Commodities.TryGetValue(item.Id, out var commodity))
+                        if (PointShop.Commodities.TryGetValue(item.Id, out var unitPrice))
                         {
-                            int price = commodity * count;
+                            int price = unitPrice * count;
                             bool succeeded = player.Buy(item.Id, count);
                             x.SendAtMessage(succeeded
                                 ? $"购买成功！获得{count}个{item.Name},本次消费{price}积分！可发送[我的背包]查询物品！\n物品说明：{item.Description}"
@@ -760,11 +755,12 @@ namespace OpenPetsWorld
                             x.SendAtMessage("宠物商店内未有此物品的身影！");
                         }
                     }
-                    else if (strMess.StartsWith("奖励") && memberId == _masterId)
+                    else if (strMess.StartsWith("奖励") && HavePermissions(memberId))
                     {
-                        string itemName = strMess[2..];
-                        int count = originalMess.GetICT(2, ref itemName, out string? target);
-
+                        //string itemName = strMess[2..];
+                        //int count = originalMess.GetICT(2, ref itemName, out string? target);
+                        Tools.ParseString(originalMess, 2, out string itemName, out int count, out string? target);
+                        
                         if (count != -1 && count == 0)
                         {
                             x.SendAtMessage("格式错误！");
@@ -783,11 +779,23 @@ namespace OpenPetsWorld
                         {
                             foreach (var player in Players[x.GroupId].Values)
                             {
-                                player.Bag.MergeValue(item.Id, 1);
+                                player.Bag.MergeValue(item.Id, count);
+                            }
+                        }
+                        else
+                        {
+                            if (Players[x.GroupId].TryGetValue(target, out var player))
+                            {
+                                player.Bag.MergeValue(item.Id, count);                     
+                            }
+                            else
+                            {
+                                x.SendAtMessage("对方未注册，无法奖励！");
+                                break;
                             }
                         }
 
-                        await x.SendMessageAsync($"已给予{itemName}");
+                        await x.SendMessageAsync($"已奖励{itemName}");
                     }
                     else if (strMess.StartsWith("宠物商店"))
                     {
@@ -870,7 +878,7 @@ namespace OpenPetsWorld
                     else if (strMess.StartsWith("进入副本"))
                     {
                         string replicaName = strMess[4..];
-                        int count = originalMess.GetICT(2, ref replicaName, out _);
+                        Tools.ParseString(originalMess, 4, out replicaName, out int count, out _);
                         Replica? replica = FindReplica(replicaName);
                         if (replica == null || !HavePet(x))
                         {
@@ -966,6 +974,17 @@ namespace OpenPetsWorld
                 foreach (var member in Players[groupId])
                 {
                     Players[groupId][member.Key].EnergyAdd();
+                }
+            }
+        }
+        
+        private static void NewEnergyRecovery(object? sender, ElapsedEventArgs e)
+        {
+            foreach (var group in Players.Values)
+            {
+                foreach (var player in group.Values)
+                {
+                    player.EnergyAdd();
                 }
             }
         }

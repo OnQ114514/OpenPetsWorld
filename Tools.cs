@@ -161,5 +161,69 @@ namespace OpenPetsWorld
 
             return -1;*/
         }
+        
+        public static void ParseString(MessageChain chain, int skipCount, out string name, out int count, out string? target)
+        {
+            string plainMessage = chain.GetPlainMessage()[skipCount..];
+            name = string.Empty;
+            count = 1;
+            target = null;
+
+            int countIndex = plainMessage.IndexOf('*');
+            int targetIndex = plainMessage.IndexOf('-');
+
+            // 提取名称
+            if (countIndex != -1)
+            {
+                name = plainMessage[..countIndex];
+            }
+            else if (targetIndex != -1)
+            {
+                name = plainMessage[..targetIndex];
+            }
+            else
+            {
+                name = plainMessage;
+            }
+
+            // 提取数量
+            if (countIndex != -1)
+            {
+                try
+                {
+                    var countText = plainMessage[(countIndex + 1)..(targetIndex != -1 ? targetIndex : plainMessage.Length)];
+                    int.TryParse(countText, out count);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+
+            // 提取目标
+            if (targetIndex != -1)
+            {
+                try
+                {
+                    var targetText = plainMessage[(targetIndex + 1)..];
+                    if (long.TryParse(targetText, out long targetNumber))
+                    {
+                        target = targetNumber.ToString();
+                    }
+                    else
+                    {
+                        var number = GetAtNumber(chain);
+                        if (number != null)
+                        {
+                            target = number;
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
     }
 }
