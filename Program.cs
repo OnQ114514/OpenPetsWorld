@@ -96,7 +96,8 @@ namespace OpenPetsWorld
             }
 
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
-            Log = new($"./{GetNowUnixTime()}.txt");
+            //Log = new($"./{GetNowUnixTime()}.txt");
+            Log = new();
 
             #region Start
 
@@ -133,13 +134,13 @@ namespace OpenPetsWorld
             #endregion
 
             ReadData();
-            
+
             #region 生成示例
 
 #if DEBUG
             if (!File.Exists("./datapack/petpool.json"))
             {
-                PetPool = new List<Pet>
+                PetPool = new()
                 {
                     new(),
                     new(),
@@ -151,7 +152,7 @@ namespace OpenPetsWorld
 
             if (!File.Exists("./datapack/replicas.json"))
             {
-                Replicas = new List<Replica>
+                Replicas = new()
                 {
                     new()
                     {
@@ -291,7 +292,7 @@ namespace OpenPetsWorld
                                 break;
                             }
                         }
-                        
+
                         break;
                     case "reload":
                         Reload();
@@ -320,8 +321,8 @@ namespace OpenPetsWorld
         {
             string groupId = x.GroupId;
             string memberId = x.Sender.Id;
-            MessageChain originalMess = x.MessageChain;
-            string strMess = originalMess.GetPlainMessage();
+            MessageChain chain = x.MessageChain;
+            string strMess = chain.GetPlainMessage();
 
             var notRunning = _notRunningGroup.Contains(groupId);
             if (strMess == "开OPW" && HavePermissions(memberId) && notRunning)
@@ -437,7 +438,7 @@ namespace OpenPetsWorld
                 {
                     Player player = Player.Register(x);
                     if (HavePet(x, out Pet? pet))
-                    {                       
+                    {
                         if (player.Activity(x, 10)) break;
                         pet.Intellect--;
                         bool addAtt = RandomBool();
@@ -469,7 +470,8 @@ namespace OpenPetsWorld
                                 MessageChainBuilder builder = new();
                                 string path = Path.GetFullPath($"./datapack/peticon/{pet.IconName}");
                                 if (pet.IconName != null) builder.ImageFromPath(path);
-                                builder.At(memberId).Plain($" 你的{pet.Name}成功进化至[LV·{level}级]{pet.Stage.ToStr()}·{pet.Name}]！");
+                                builder.At(memberId)
+                                    .Plain($" 你的{pet.Name}成功进化至[LV·{level}级]{pet.Stage.ToStr()}·{pet.Name}]！");
                                 await x.SendMessageAsync(builder.Build());
                                 break;
                             case -1:
@@ -479,7 +481,7 @@ namespace OpenPetsWorld
                                 x.SendAtMessage($"你的[{pet.Name}]已达到最高进化形态！！！");
                                 break;
                             case -3:
-                                x.SendAtMessage($"你的[{pet.Name}]等级不足"/*,以下为进化流程："*/);
+                                x.SendAtMessage($"你的[{pet.Name}]等级不足" /*,以下为进化流程："*/);
                                 break;
                         }
                     }
@@ -583,7 +585,7 @@ namespace OpenPetsWorld
                     graphics.DrawImage(Image.FromStream(stream), new Rectangle(0, 0, 90, 90));
                     stream.Close();
                     graphics.ClearText();
-                    graphics.DrawString(x.Sender.MemberProfile.NickName, new Font("微软雅黑", 15, FontStyle.Bold),
+                    graphics.DrawString(x.Sender.MemberProfile.NickName, new("微软雅黑", 15, FontStyle.Bold),
                         Brushes.Black, new Point(95, 5));
                     using Font font = new("微软雅黑", 13, FontStyle.Regular);
                     string[] signTexts2 =
@@ -683,8 +685,7 @@ namespace OpenPetsWorld
                     if (strMess.StartsWith("使用"))
                     {
                         Player player = Player.Register(x);
-                        //int count = originalMess.GetICT(2, ref itemName, out string? target);
-                        Tools.ParseString(originalMess, 2, out string itemName, out int count, out string? target);
+                        Tools.ParseString(chain, 2, out string itemName, out int count, out string? target);
 
                         if (count != -1)
                         {
@@ -715,9 +716,8 @@ namespace OpenPetsWorld
                     }
                     else if (strMess.StartsWith("购买"))
                     {
-                        string itemName = strMess[2..];
                         Player player = Player.Register(x);
-                        int count = originalMess.GetICT(2, ref itemName, out string? target);
+                        Tools.ParseString(chain, 2, out string itemName, out int count,out _);
 
                         if (count != -1)
                         {
@@ -757,10 +757,8 @@ namespace OpenPetsWorld
                     }
                     else if (strMess.StartsWith("奖励") && HavePermissions(memberId))
                     {
-                        //string itemName = strMess[2..];
-                        //int count = originalMess.GetICT(2, ref itemName, out string? target);
-                        Tools.ParseString(originalMess, 2, out string itemName, out int count, out string? target);
-                        
+                        Tools.ParseString(chain, 2, out string itemName, out int count, out string? target);
+
                         if (count != -1 && count == 0)
                         {
                             x.SendAtMessage("格式错误！");
@@ -786,7 +784,7 @@ namespace OpenPetsWorld
                         {
                             if (Players[x.GroupId].TryGetValue(target, out var player))
                             {
-                                player.Bag.MergeValue(item.Id, count);                     
+                                player.Bag.MergeValue(item.Id, count);
                             }
                             else
                             {
@@ -795,7 +793,64 @@ namespace OpenPetsWorld
                             }
                         }
 
-                        await x.SendMessageAsync($"已奖励{itemName}");
+                        await x.SendMessageAsync($"已奖励{itemName}*{count}");
+                    }
+                    else if (strMess.StartsWith("扣除") && HavePermissions(memberId))
+                    {
+                        Tools.ParseString(chain, 2, out string itemName, out int count, out string? target);
+
+                        if (count != -1 && count == 0)
+                        {
+                            x.SendAtMessage("格式错误！");
+                            break;
+                        }
+
+                        var item = FindItem(itemName);
+
+                        if (item == null)
+                        {
+                            x.SendAtMessage("该道具并不存在，请检查是否输错！");
+                            break;
+                        }
+
+                        var players = Players[x.GroupId];
+                        int succeedCount = 0;
+                        int failCount = 0;
+
+                        if (target == null)
+                        {
+                            foreach (var player in players.Values)
+                            {
+                                if (player.Bag[item.Id] < count)
+                                {
+                                    failCount++;
+                                    continue;
+                                }
+
+                                player.Bag.MergeValue(item.Id, -count);
+                                succeedCount++;
+                            }
+
+                            x.SendAtMessage($"扣除完毕\n成功数：{succeedCount}\n失败数：{failCount}");
+                            break;
+                        }
+                        else
+                        {
+                            if (players.TryGetValue(target, out var player))
+                            {
+                                if (player.Bag[item.Id] >= count)
+                                {
+                                    player.Bag.MergeValue(item.Id, -count);
+                                }
+                            }
+                            else
+                            {
+                                x.SendAtMessage("对方未注册，无法扣除！");
+                                break;
+                            }
+                        }
+
+                        await x.SendMessageAsync($"已扣除{itemName}*{count}");
                     }
                     else if (strMess.StartsWith("宠物商店"))
                     {
@@ -877,8 +932,7 @@ namespace OpenPetsWorld
                     }
                     else if (strMess.StartsWith("进入副本"))
                     {
-                        string replicaName = strMess[4..];
-                        Tools.ParseString(originalMess, 4, out replicaName, out int count, out _);
+                        Tools.ParseString(chain, 4, out var replicaName, out int count, out _);
                         Replica? replica = FindReplica(replicaName);
                         if (replica == null || !HavePet(x))
                         {
@@ -916,7 +970,7 @@ namespace OpenPetsWorld
                     }
                     else if (strMess.StartsWith("宠物攻击"))
                     {
-                        string? target = GetAtNumber(originalMess);
+                        string? target = GetAtNumber(chain);
                         if (target == null)
                         {
                             break;
@@ -966,18 +1020,6 @@ namespace OpenPetsWorld
             return Random.Next(0, 2) == 1;
         }
 
-        private static void EnergyRecovery(object? sender, ElapsedEventArgs e)
-        {
-            foreach (var group in Players)
-            {
-                string groupId = group.Key;
-                foreach (var member in Players[groupId])
-                {
-                    Players[groupId][member.Key].EnergyAdd();
-                }
-            }
-        }
-        
         private static void NewEnergyRecovery(object? sender, ElapsedEventArgs e)
         {
             foreach (var group in Players.Values)
@@ -1007,7 +1049,7 @@ namespace OpenPetsWorld
             var json = JsonConvert.SerializeObject(config);
             File.WriteAllText(path, json);
         }
-        
+
         private static void ReadConfig()
         {
             string path = "./config.json";
@@ -1070,7 +1112,7 @@ namespace OpenPetsWorld
                 Console.WriteLine("请输入正确的QQ号！");
             }
         }
-        
+
         private static void Reload()
         {
             SaveData();
