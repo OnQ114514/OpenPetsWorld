@@ -1,10 +1,8 @@
 ﻿using System.Drawing;
 using Mirai.Net.Data.Messages;
 using static OpenPetsWorld.Program;
-using static OpenPetsWorld.OpenPetsWorld;
 using Mirai.Net.Data.Messages.Receivers;
 using Mirai.Net.Utils.Scaffolds;
-using OpenPetsWorld.Item;
 
 namespace OpenPetsWorld
 {
@@ -140,26 +138,6 @@ namespace OpenPetsWorld
             }
             
             return 1;
-
-            /*if (v == string.Empty)
-            {
-                return -1;
-            }
-
-            if (index != -1)
-            {
-                if (int.TryParse(v[(index + 1)..], out int count))
-                {
-                    item = v[..index];
-                    return count;
-                }
-                else
-                {
-                    return 0;
-                }
-            }
-
-            return -1;*/
         }
         
         public static void ParseString(MessageChain chain, int skipCount, out string name, out int count, out string? target)

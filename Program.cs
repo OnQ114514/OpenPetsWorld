@@ -1,21 +1,21 @@
-﻿using System.Diagnostics;
+﻿using Manganese.Text;
 using Mirai.Net.Data.Messages;
 using Mirai.Net.Data.Messages.Concretes;
 using Mirai.Net.Data.Messages.Receivers;
 using Mirai.Net.Sessions;
 using Mirai.Net.Sessions.Http.Managers;
 using Mirai.Net.Utils.Scaffolds;
+using Newtonsoft.Json;
+using OpenPetsWorld.Item;
+using OpenPetsWorld.PetTool;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using System.Timers;
-using Manganese.Text;
-using Newtonsoft.Json;
 using static OpenPetsWorld.OpenPetsWorld;
 using Timer = System.Timers.Timer;
-using OpenPetsWorld.Item;
-using OpenPetsWorld.PetTool;
 
 namespace OpenPetsWorld
 {
@@ -39,7 +39,7 @@ namespace OpenPetsWorld
             return false;
         }
 
-        #endregion
+        #endregion 关闭保存
 
         public static readonly Font YaHei = new("微软雅黑", 20, FontStyle.Regular);
         public static readonly Brush Black = Brushes.Black;
@@ -49,7 +49,7 @@ namespace OpenPetsWorld
         private static List<string> _groupList = new();
         private static HashSet<string> _notRunningGroup = new();
         private static bool _blackListMode;
-        private static string _masterId = "58554566";
+        private static string _masterId = "";
         private static List<string> _admins = new();
         private static readonly HttpClient HttpClient = new();
         public static readonly Random Random = new();
@@ -75,7 +75,7 @@ namespace OpenPetsWorld
                     KeysExit();
                 }
 
-                #endregion
+                #endregion ReadConfig
             }
             else
             {
@@ -92,7 +92,7 @@ namespace OpenPetsWorld
                 Console.Write("验证密钥：");
                 _verifyKey = Console.ReadLine();
 
-                #endregion
+                #endregion Initialize
             }
 
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
@@ -120,7 +120,7 @@ namespace OpenPetsWorld
                 return;
             }
 
-            #endregion
+            #endregion Start
 
             Log.Info("已连接至Mirai");
 
@@ -131,7 +131,7 @@ namespace OpenPetsWorld
                 WriteConfig();
             }
 
-            #endregion
+            #endregion WriteConfig
 
             ReadData();
 
@@ -189,7 +189,7 @@ namespace OpenPetsWorld
             }
 #endif
 
-            #endregion
+            #endregion 生成示例
 
             Timer timer = new(60000)
             {
@@ -215,7 +215,7 @@ namespace OpenPetsWorld
 
             SetConsoleCtrlHandler(cancelHandler, true);
 
-            for (;;)
+            for (; ; )
             {
                 Console.SetCursorPosition(0, Console.CursorTop);
                 Console.Write("> ");
@@ -227,13 +227,16 @@ namespace OpenPetsWorld
                         File.Delete("./config.txt");
                         Console.WriteLine("已清除配置");
                         break;
+
                     case "stop":
                         WriteConfig();
                         SaveData();
                         KeysExit();
                         break;
+
                     case "stop!":
                         return;
+
                     case "help":
                         Console.WriteLine("——————帮助菜单——————\n" +
                                           "/clearconfig 清除配置文件\n" +
@@ -245,6 +248,7 @@ namespace OpenPetsWorld
                                           "/group del {群号} 删除群\n" +
                                           "/group list 列出所有已添加群");
                         break;
+
                     case "group":
                         if (commands.Length <= 1)
                         {
@@ -257,53 +261,58 @@ namespace OpenPetsWorld
                             case "list":
                                 Console.WriteLine(string.Join("\n", _groupList));
                                 break;
+
                             case "add":
-                            {
-                                if (commands.Length < 3)
                                 {
-                                    CoverLine("参数不足");
+                                    if (commands.Length < 3)
+                                    {
+                                        CoverLine("参数不足");
+                                        break;
+                                    }
+
+                                    string groupId = commands[2];
+                                    if (!long.TryParse(groupId, out _))
+                                    {
+                                        Console.WriteLine("请输入正确的群号！");
+                                        break;
+                                    }
+
+                                    _groupList.Add(groupId);
                                     break;
                                 }
-
-                                string groupId = commands[2];
-                                if (!long.TryParse(groupId, out _))
-                                {
-                                    Console.WriteLine("请输入正确的群号！");
-                                    break;
-                                }
-
-                                _groupList.Add(groupId);
-                                break;
-                            }
                             case "del":
-                            {
-                                if (commands.Length < 3)
                                 {
-                                    CoverLine("参数不足");
+                                    if (commands.Length < 3)
+                                    {
+                                        CoverLine("参数不足");
+                                        break;
+                                    }
+
+                                    string groupId = input[10..];
+                                    if (!long.TryParse(groupId, out _) && !_groupList.Remove(groupId))
+                                    {
+                                        Console.WriteLine("请输入正确的群号！");
+                                    }
+
                                     break;
                                 }
-
-                                string groupId = input[10..];
-                                if (!long.TryParse(groupId, out _) && !_groupList.Remove(groupId))
-                                {
-                                    Console.WriteLine("请输入正确的群号！");
-                                }
-
-                                break;
-                            }
                         }
 
                         break;
+
                     case "reload":
                         Reload();
                         Console.WriteLine("已重载数据");
                         break;
+
                     case "save":
                         WriteConfig();
                         SaveData();
                         break;
+
                     case "":
                         break;
+
                     default:
                         Console.WriteLine($"未知命令\"{input}\"，请输入/help查看命令");
                         break;
@@ -341,6 +350,7 @@ namespace OpenPetsWorld
                 case "OpenPetsWorld":
                     await x.SendMessageAsync("由OpenPetsWorld Pre.2强力驱动");
                     break;
+
                 case "关OPW":
                     if (HavePermissions(memberId))
                     {
@@ -349,145 +359,149 @@ namespace OpenPetsWorld
                     }
 
                     break;
-                case "宠物世界":
-                {
-                    string menuPath = "./datapack/menu.png";
 
-                    if (!File.Exists(menuPath))
+                case "宠物世界":
                     {
-                        Log.Warn("菜单图片不存在");
+                        string menuPath = "./datapack/menu.png";
+
+                        if (!File.Exists(menuPath))
+                        {
+                            Log.Warn("菜单图片不存在");
+                            break;
+                        }
+
+                        string fullPath = Path.GetFullPath(menuPath);
+
+                        await x.SendMessageAsync(new MessageChainBuilder().ImageFromPath(fullPath).Build());
                         break;
                     }
-
-                    string fullPath = Path.GetFullPath(menuPath);
-
-                    await x.SendMessageAsync(new MessageChainBuilder().ImageFromPath(fullPath).Build());
-                    break;
-                }
                 case "我的宠物":
-                {
-                    if (HavePet(x, out Pet? pet))
                     {
-                        var image = pet.Render();
-                        x.SendBmpMessage(image);
-                    }
+                        if (HavePet(x, out Pet? pet))
+                        {
+                            var image = pet.Render();
+                            x.SendBmpMessage(image);
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "砸蛋":
-                {
-                    Player player = Player.Register(x);
-                    if (player.Pet == null)
                     {
-                        if (player.Points < 500)
+                        Player player = Player.Register(x);
+                        if (player.Pet == null)
                         {
-                            x.SendAtMessage("您的积分不足,无法进行砸蛋!\n【所需[500]积分】\n请发送【签到】获得积分");
-                            break;
-                        }
+                            if (player.Points < 500)
+                            {
+                                x.SendAtMessage("您的积分不足,无法进行砸蛋!\n【所需[500]积分】\n请发送【签到】获得积分");
+                                break;
+                            }
 
-                        player.Points -= 500;
-                        Pet pet;
-                        try
-                        {
-                            pet = Pet.Extract();
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                            break;
-                        }
+                            player.Points -= 500;
+                            Pet pet;
+                            try
+                            {
+                                pet = Pet.Extract();
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e);
+                                break;
+                            }
 
-                        player.Pet = pet;
-                        x.SendAtMessage($"恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋");
-                    }
-                    else
-                    {
-                        x.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
-                    }
-
-                    break;
-                }
-                case "修炼":
-                {
-                    var player = Player.Register(x);
-                    if (HavePet(x, out Pet? pet))
-                    {
-                        if (player.Activity(x, 10)) break;
-                        int addExp = Random.Next(250, 550);
-                        pet.Experience += addExp;
-                        SendAtMessage(groupId, memberId,
-                            $"您的【{pet.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+120秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
-                    }
-
-                    break;
-                }
-                case "学习":
-                {
-                    Player player = Player.Register(x);
-                    if (HavePet(x, out Pet? pet))
-                    {
-                        if (player.Activity(x, 10)) break;
-                        pet.Intellect += Random.Next(2, 6);
-                        SendAtMessage(groupId, memberId,
-                            $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+120秒\n●减少精力：-10点\n●获得智力：+2\n------------------");
-                    }
-
-                    break;
-                }
-                case "洗髓":
-                {
-                    Player player = Player.Register(x);
-                    if (HavePet(x, out Pet? pet))
-                    {
-                        if (player.Activity(x, 10)) break;
-                        pet.Intellect--;
-                        bool addAtt = RandomBool();
-                        int addAttNumber = Random.Next(10, 18);
-                        string addAttText = addAtt ? "攻击" : "防御";
-                        if (addAtt)
-                        {
-                            pet.Attack += addAttNumber;
+                            player.Pet = pet;
+                            x.SendAtMessage($"恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋");
                         }
                         else
                         {
-                            pet.Defense += addAttNumber;
+                            x.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
                         }
 
-                        x.SendAtMessage(
-                            $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+120秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttNumber}\n------------------");
+                        break;
                     }
-
-                    break;
-                }
-                case "宠物进化":
-                {
-                    if (HavePet(x, out var pet))
+                case "修炼":
                     {
-                        int statusCode = pet.Evolved(out int level);
-                        switch (statusCode)
+                        var player = Player.Register(x);
+                        if (HavePet(x, out Pet? pet))
                         {
-                            case 0:
-                                MessageChainBuilder builder = new();
-                                string path = Path.GetFullPath($"./datapack/peticon/{pet.IconName}");
-                                if (pet.IconName != null) builder.ImageFromPath(path);
-                                builder.At(memberId)
-                                    .Plain($" 你的{pet.Name}成功进化至[LV·{level}级]{pet.Stage.ToStr()}·{pet.Name}]！");
-                                await x.SendMessageAsync(builder.Build());
-                                break;
-                            case -1:
-                                x.SendAtMessage("你的宠物暂时无法进化哦！");
-                                break;
-                            case -2:
-                                x.SendAtMessage($"你的[{pet.Name}]已达到最高进化形态！！！");
-                                break;
-                            case -3:
-                                x.SendAtMessage($"你的[{pet.Name}]等级不足" /*,以下为进化流程："*/);
-                                break;
+                            if (player.Activity(x, 10)) break;
+                            int addExp = Random.Next(MinExpAdd, MaxExpAdd);
+                            pet.Experience += addExp;
+                            SendAtMessage(groupId, memberId,
+                                $"您的【{pet.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+120秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
                         }
-                    }
 
-                    break;
-                }
+                        break;
+                    }
+                case "学习":
+                    {
+                        Player player = Player.Register(x);
+                        if (HavePet(x, out Pet? pet))
+                        {
+                            if (player.Activity(x, 10)) break;
+                            pet.Intellect += Random.Next(MinIQAdd, MaxIQAdd);
+                            SendAtMessage(groupId, memberId,
+                                $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+120秒\n●减少精力：-10点\n●获得智力：+2\n------------------");
+                        }
+
+                        break;
+                    }
+                case "洗髓":
+                    {
+                        Player player = Player.Register(x);
+                        if (HavePet(x, out Pet? pet))
+                        {
+                            if (player.Activity(x, 10)) break;
+                            pet.Intellect--;
+                            bool addAttr = RandomBool();
+                            int addAttrNumber = Random.Next(MinAttrAdd, MaxAttrAdd);
+                            string addAttText = addAttr ? "攻击" : "防御";
+                            if (addAttr)
+                            {
+                                pet.Attack += addAttrNumber;
+                            }
+                            else
+                            {
+                                pet.Defense += addAttrNumber;
+                            }
+
+                            x.SendAtMessage(
+                                $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+120秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttrNumber}\n------------------");
+                        }
+
+                        break;
+                    }
+                case "宠物进化":
+                    {
+                        if (HavePet(x, out var pet))
+                        {
+                            int statusCode = pet.Evolved(out int level);
+                            switch (statusCode)
+                            {
+                                case 0:
+                                    MessageChainBuilder builder = new();
+                                    string path = Path.GetFullPath($"./datapack/peticon/{pet.IconName}");
+                                    if (pet.IconName != null) builder.ImageFromPath(path);
+                                    builder.At(memberId)
+                                        .Plain($" 你的{pet.Name}成功进化至[LV·{level}级]{pet.Stage.ToStr()}·{pet.Name}]！");
+                                    await x.SendMessageAsync(builder.Build());
+                                    break;
+
+                                case -1:
+                                    x.SendAtMessage("你的宠物暂时无法进化哦！");
+                                    break;
+
+                                case -2:
+                                    x.SendAtMessage($"你的[{pet.Name}]已达到最高进化形态！！！");
+                                    break;
+
+                                case -3:
+                                    x.SendAtMessage($"你的[{pet.Name}]等级不足" /*,以下为进化流程："*/);
+                                    break;
+                            }
+                        }
+
+                        break;
+                    }
                 //TODO:支持多级升级
                 case "宠物升级":
                     if (HavePet(x))
@@ -520,6 +534,7 @@ namespace OpenPetsWorld
                     }
 
                     break;
+
                 case "卸下神器":
                     if (HavePet(x))
                     {
@@ -529,6 +544,7 @@ namespace OpenPetsWorld
                     }
 
                     break;
+
                 case "宠物放生":
                     if (HavePet(x))
                     {
@@ -539,6 +555,7 @@ namespace OpenPetsWorld
                     }
 
                     break;
+
                 case "确定放生":
                     if (SentTime.ContainsKey(memberId))
                     {
@@ -551,123 +568,124 @@ namespace OpenPetsWorld
                     }
 
                     break;
+
                 case "签到":
-                {
-                    Player player = Player.Register(x);
-                    long todayUnixTime = DateTime.Now.Date.ToUnixTime();
-                    if (todayUnixTime - player.LastSignedUnixTime <= 86400)
                     {
-                        x.SendAtMessage("今天已签到过了,明天再来吧!");
-                        break;
-                    }
+                        Player player = Player.Register(x);
+                        long todayUnixTime = DateTime.Now.Date.ToUnixTime();
+                        if (todayUnixTime - player.LastSignedUnixTime <= 86400)
+                        {
+                            x.SendAtMessage("今天已签到过了,明天再来吧!");
+                            break;
+                        }
 
-                    if (todayUnixTime - player.LastSignedUnixTime >= 172800 && player.LastSignedUnixTime != 0)
-                    {
-                        player.ContinuousSignedDays = 0;
-                    }
-                    else
-                    {
-                        player.ContinuousSignedDays++;
-                    }
+                        if (todayUnixTime - player.LastSignedUnixTime >= 172800 && player.LastSignedUnixTime != 0)
+                        {
+                            player.ContinuousSignedDays = 0;
+                        }
+                        else
+                        {
+                            player.ContinuousSignedDays++;
+                        }
 
-                    player.LastSignedUnixTime = todayUnixTime;
-                    player.SignedDays++;
-                    int points = 2200 + player.SignedDays * 50;
-                    player.Points += points;
+                        player.LastSignedUnixTime = todayUnixTime;
+                        player.SignedDays++;
+                        int points = 2200 + player.SignedDays * 50;
+                        player.Points += points;
 
-                    #region 绘图
+                        #region 绘图
 
-                    Stream stream =
-                        await HttpClient.GetStreamAsync($"https://q2.qlogo.cn/headimg_dl?dst_uin={memberId}&spec=100");
-                    using Bitmap imageData = new(230, 90);
-                    using var graphics = Graphics.FromImage(imageData); //存入画布
-                    graphics.Clear(Color.White);
-                    graphics.DrawImage(Image.FromStream(stream), new Rectangle(0, 0, 90, 90));
-                    stream.Close();
-                    graphics.ClearText();
-                    graphics.DrawString(x.Sender.MemberProfile.NickName, new("微软雅黑", 15, FontStyle.Bold),
-                        Brushes.Black, new Point(95, 5));
-                    using Font font = new("微软雅黑", 13, FontStyle.Regular);
-                    string[] signTexts2 =
-                    {
+                        Stream stream =
+                            await HttpClient.GetStreamAsync($"https://q2.qlogo.cn/headimg_dl?dst_uin={memberId}&spec=100");
+                        using Bitmap imageData = new(230, 90);
+                        using var graphics = Graphics.FromImage(imageData); //存入画布
+                        graphics.Clear(Color.White);
+                        graphics.DrawImage(Image.FromStream(stream), new Rectangle(0, 0, 90, 90));
+                        stream.Close();
+                        graphics.ClearText();
+                        graphics.DrawString(x.Sender.MemberProfile.NickName, new("微软雅黑", 15, FontStyle.Bold),
+                            Brushes.Black, new Point(95, 5));
+                        using Font font = new("微软雅黑", 13, FontStyle.Regular);
+                        string[] signTexts2 =
+                        {
                         points.ToString(),
                         player.SignedDays.ToString(),
                         $"{player.ContinuousSignedDays}/31"
                     };
-                    int n = 30;
-                    for (int i = 0; i < 3; i++)
-                    {
-                        string signText = SignTexts[i];
-                        string signText2 = signTexts2[i];
-                        graphics.DrawString($"{signText}：{signText2}", font, Brushes.Black, new Point(95, n));
-                        n += 18;
-                    }
-
-                    #endregion
-
-                    x.SendBmpMessage(imageData);
-                    break;
-                }
-                case "我的资产":
-                {
-                    Player player = Player.Register(x);
-                    using Bitmap bitmap = new(480, 235);
-                    using var graphics = Graphics.FromImage(bitmap);
-                    using Font font = new("Microsoft YaHei", 23, FontStyle.Bold);
-                    graphics.Clear(Color.White);
-                    graphics.DrawString($"[{memberId}]您的财富信息如下：", font, Black, 2, 2);
-                    graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
-                    graphics.DrawString($"●积分：{player.Points}", font, Black, 0, 65);
-                    graphics.DrawString($"●点券：{player.Bonds}", font, Black, 0, 125);
-                    graphics.DrawLine(new(Color.Black, 3), new(0, 180), new(480, 180));
-                    x.SendBmpMessage(bitmap);
-                    break;
-                }
-                case "我的背包":
-                {
-                    Player player = Player.Register(x);
-                    List<string> bagItemList = new();
-                    foreach (var bagItem in player.Bag)
-                    {
-                        BaseItem item = Items[bagItem.Key];
-                        string type = item.ItemType.ToStr();
-
-                        int count = bagItem.Value;
-                        if (count != 0)
+                        int n = 30;
+                        for (int i = 0; i < 3; i++)
                         {
-                            bagItemList.Add($"●[{type}]:{item.Name}⨉{count}");
+                            string signText = SignTexts[i];
+                            string signText2 = signTexts2[i];
+                            graphics.DrawString($"{signText}：{signText2}", font, Brushes.Black, new Point(95, n));
+                            n += 18;
                         }
-                    }
 
-                    if (bagItemList.Count == 0)
-                    {
-                        x.SendAtMessage("您的背包里面空空如也哦！");
+                        #endregion 绘图
+
+                        x.SendBmpMessage(imageData);
                         break;
                     }
-
-                    #region 绘图
-
-                    int height = bagItemList.Count * 38 + 110;
-                    using Bitmap imageData = new(480, height);
-                    using var graphics = Graphics.FromImage(imageData);
-                    using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
-                    graphics.Clear(Color.White);
-                    graphics.DrawString($"[{memberId}]您的背包：", font, Black, 2, 2);
-                    graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
-                    int i = 65;
-                    foreach (string itemStr in bagItemList)
+                case "我的资产":
                     {
-                        graphics.DrawString(itemStr, font, Black, 0, i);
-                        i += 38;
+                        Player player = Player.Register(x);
+                        using Bitmap bitmap = new(480, 235);
+                        using var graphics = Graphics.FromImage(bitmap);
+                        using Font font = new("Microsoft YaHei", 23, FontStyle.Bold);
+                        graphics.Clear(Color.White);
+                        graphics.DrawString($"[{memberId}]您的财富信息如下：", font, Black, 2, 2);
+                        graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
+                        graphics.DrawString($"●积分：{player.Points}", font, Black, 0, 65);
+                        graphics.DrawString($"●点券：{player.Bonds}", font, Black, 0, 125);
+                        graphics.DrawLine(new(Color.Black, 3), new(0, 180), new(480, 180));
+                        x.SendBmpMessage(bitmap);
+                        break;
                     }
+                case "我的背包":
+                    {
+                        Player player = Player.Register(x);
+                        List<string> bagItemList = new();
+                        foreach (var bagItem in player.Bag)
+                        {
+                            BaseItem item = Items[bagItem.Key];
+                            string type = item.ItemType.ToStr();
 
-                    graphics.DrawLine(new(Color.Black, 3), new(0, height - 30), new(480, height - 30));
-                    x.SendBmpMessage(imageData);
+                            int count = bagItem.Value;
+                            if (count != 0)
+                            {
+                                bagItemList.Add($"●[{type}]:{item.Name}⨉{count}");
+                            }
+                        }
 
-                    #endregion
+                        if (bagItemList.Count == 0)
+                        {
+                            x.SendAtMessage("您的背包里面空空如也哦！");
+                            break;
+                        }
 
-                    break;
-                }
+                        #region 绘图
+
+                        int height = bagItemList.Count * 38 + 110;
+                        using Bitmap imageData = new(480, height);
+                        using var graphics = Graphics.FromImage(imageData);
+                        using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
+                        graphics.Clear(Color.White);
+                        graphics.DrawString($"[{memberId}]您的背包：", font, Black, 2, 2);
+                        graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
+                        int i = 65;
+                        foreach (string itemStr in bagItemList)
+                        {
+                            graphics.DrawString(itemStr, font, Black, 0, i);
+                            i += 38;
+                        }
+
+                        graphics.DrawLine(new(Color.Black, 3), new(0, height - 30), new(480, height - 30));
+                        x.SendBmpMessage(imageData);
+
+                        #endregion 绘图
+
+                        break;
+                    }
                 case "AllItemList":
                     if (memberId == _masterId)
                     {
@@ -681,26 +699,12 @@ namespace OpenPetsWorld
                     }
 
                     break;
+
                 default:
                     if (strMess.StartsWith("使用"))
                     {
-                        Player player = Player.Register(x);
                         Tools.ParseString(chain, 2, out string itemName, out int count, out string? target);
-
-                        if (count != -1)
-                        {
-                            if (count == 0)
-                            {
-                                x.SendAtMessage("格式错误！");
-                                break;
-                            }
-
-                            if (count > 99999)
-                            {
-                                x.SendAtMessage("数量超出范围！");
-                                break;
-                            }
-                        }
+                        if (!IsCompliant(x, count)) break;
 
                         var item = FindItem(itemName);
 
@@ -710,30 +714,16 @@ namespace OpenPetsWorld
                             break;
                         }
 
+                        var player = Player.Register(x);
                         player.Bag.TryAdd(item.Id, 0);
 
                         item.Use(x, count);
                     }
                     else if (strMess.StartsWith("购买"))
                     {
-                        Player player = Player.Register(x);
-                        Tools.ParseString(chain, 2, out string itemName, out int count,out _);
+                        Tools.ParseString(chain, 2, out string itemName, out int count, out _);
 
-                        if (count != -1)
-                        {
-                            if (count == 0)
-                            {
-                                x.SendAtMessage("格式错误！");
-                                break;
-                            }
-
-                            if (count > 99999)
-                            {
-                                x.SendAtMessage("数量超出范围！");
-                                break;
-                            }
-                        }
-
+                        if (!IsCompliant(x, count)) break;
                         var item = FindItem(itemName);
 
                         if (item == null)
@@ -745,6 +735,8 @@ namespace OpenPetsWorld
                         if (PointShop.Commodities.TryGetValue(item.Id, out var unitPrice))
                         {
                             int price = unitPrice * count;
+
+                            var player = Player.Register(x);
                             bool succeeded = player.Buy(item.Id, count);
                             x.SendAtMessage(succeeded
                                 ? $"购买成功！获得{count}个{item.Name},本次消费{price}积分！可发送[我的背包]查询物品！\n物品说明：{item.Description}"
@@ -904,6 +896,73 @@ namespace OpenPetsWorld
 
                         await x.SendMessageAsync(builder.Build());
                     }
+                    else if (strMess.StartsWith("合成"))
+                    {
+                        if (strMess.Length < 3)
+                        {
+                            x.SendAtMessage("◇指令:合成+道具*数量");
+                            break;
+                        }
+
+                        Tools.ParseString(chain, 2, out string itemName, out int count, out _);
+                        if (!IsCompliant(x, count)) break;
+
+                        BaseItem? item = FindItem(itemName);
+                        if (item == null)
+                        {
+                            x.SendAtMessage("此物品不存在，或者输入错误！");
+                            break;
+                        }
+
+                        if (item.Make(x, count))
+                        {
+                            await x.SendMessageAsync(new MessageChainBuilder()
+                                .ImageFromPath(Path.GetFullPath($"./itemicon/{item.DescriptionImageName}.png"))
+                                .At(memberId)
+                                .Plain($" 合成成功了！恭喜你获得了道具·{itemName}*{count}")
+                                .Build());
+                        }
+                    }
+                    else if (strMess.StartsWith("领取"))
+                    {
+                        Tools.ParseString(chain, 2, out string giftName, out _, out _);
+                        if (strMess.Length < 3)
+                        {
+                            x.SendAtMessage("◇指令:领取+礼包名");
+                            break;
+                        }
+
+                        var gift = FindGift(giftName);
+                        if (gift == null)
+                        {
+                            x.SendAtMessage("此礼包不存在，或者输入错误！");
+                            break;
+                        }
+
+                        var player = Player.Register(x);
+
+                        if (player.ClaimedGifts.Contains(gift.Id)) 
+                        {
+                            x.SendAtMessage("你已领取过该礼包，不可重复领取");
+                            break;
+                        }
+
+                        if (gift.Level != 0 && !(HavePet(x, out var pet) && pet.Level >= 0))
+                        {
+                            break;
+                        }
+
+                        List<string> message = new();
+                        foreach (var item in gift.Items)
+                        {
+                            message.Add($"{Items[item.Id].Name}*{item.Count}");
+                            player.Bag.MergeValue(item.Id, item.Count);
+                        }
+
+                        player.ClaimedGifts.Add(gift.Id);
+
+                        x.SendAtMessage("领取成功\n" + string.Join("\n", message));
+                    }
                     else if (strMess.StartsWith("宠物副本"))
                     {
                         int index = strMess[4..].GetCount("");
@@ -989,7 +1048,6 @@ namespace OpenPetsWorld
                             break;
                         }
 
-
                         int attack = tPlayer.Pet.Damage(player.Pet);
                         tPlayer.Pet.Health -= attack;
                         await x.SendMessageAsync(
@@ -1031,7 +1089,6 @@ namespace OpenPetsWorld
             }
         }
 
-
         private static void WriteConfig()
         {
             string path = "./config.json";
@@ -1066,7 +1123,6 @@ namespace OpenPetsWorld
             _notRunningGroup = config.NotRunningGroup;
         }
 
-
         #region 发送消息
 
         public static async void SendAtMessage(string groupId, string memberId, string message)
@@ -1084,7 +1140,7 @@ namespace OpenPetsWorld
             await MessageManager.SendGroupMessageAsync(groupId, message);
         }
 
-        #endregion
+        #endregion 发送消息
 
         private static bool HavePermissions(string id)
         {
@@ -1104,7 +1160,7 @@ namespace OpenPetsWorld
 
         private static string GetQNumber()
         {
-            for (;;)
+            for (; ; )
             {
                 Console.Write("QQ号：");
                 string? qqNumber = Console.ReadLine();
@@ -1124,6 +1180,25 @@ namespace OpenPetsWorld
             return DateTime.UtcNow.ToUnixTime();
         }
 
+        private static bool IsCompliant(GroupMessageReceiver receiver, int count)
+        {
+            if (count != -1)
+            {
+                if (count == 0)
+                {
+                    receiver.SendAtMessage("格式错误！");
+                    return false;
+                }
+
+                if (count > 99999)
+                {
+                    receiver.SendAtMessage("数量超出范围！");
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         private static void KeysExit()
         {

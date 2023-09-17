@@ -8,6 +8,6 @@ public class Config
     public List<string> GroupList = new();
     public HashSet<string> NotRunningGroup = new();
     public bool BlackListMode = false;
-    public string MasterId = "58554566";
+    public string MasterId = "";
     public List<string> Admins = new();
 }

@@ -8,14 +8,14 @@ namespace OpenPetsWorld;
 
 public class Shop
 {
-    [JsonIgnore] private int _pagesCount;
+    [JsonIgnore] private readonly int _pagesCount;
     public string Command = "";
     public string Name = "";
     public Dictionary<int, int> Commodities = new();
 
     public int this[int i] => Commodities[i];
 
-    public void Initialize()
+    public Shop()
     {
         _pagesCount = (int)Math.Ceiling((double)Commodities.Count / 10);
     }

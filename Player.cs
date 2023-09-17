@@ -42,6 +42,8 @@ public class Player
     /// </summary>
     public Pet? Pet;
 
+    public List<int> ClaimedGifts = new();
+
     public long LastActivityUnixTime = 0;
 
     public static Player Register(GroupMessageReceiver x)

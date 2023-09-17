@@ -23,10 +23,19 @@ namespace OpenPetsWorld
         public static Dictionary<int, BaseItem> Items = new();
         public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
+        public static List<Gift> Gifts = new();
+        
         public static Shop PointShop = new();
 
         public static Image Wallpaper = new Bitmap(650, 500);
-        
+
+        public static int MaxIQAdd;
+        public static int MinIQAdd;
+        public static int MaxAttrAdd;
+        public static int MinAttrAdd;
+        public static int MaxExpAdd;
+        public static int MinExpAdd;
+
         public static bool HavePet(GroupMessageReceiver x, bool send = true)
         {
             return HavePet(x.GroupId, x.Sender.Id, send);
@@ -75,9 +84,20 @@ namespace OpenPetsWorld
             return false;
         }
 
+        public static Gift? FindGift(string giftName)
+        {
+            var gifts = Gifts.Where(gifts => gifts.Name == giftName).ToList();
+            if (gifts.Count != 0)
+            {
+                return gifts[0];
+            }
+            
+            return null;
+        }
+        
         public static BaseItem? FindItem(string itemName)
         {
-            var items = Items.Values.Where(litems => litems.Name == itemName).ToList();
+            var items = Items.Values.Where(item => item.Name == itemName).ToList();
             if (items.Count != 0)
             {
                 return items[0];
@@ -106,7 +126,7 @@ namespace OpenPetsWorld
         {
             #region 宠物背景
 
-            string wallpaperPath = "./datapack/wallpaper.jpg";
+            const string wallpaperPath = "./datapack/wallpaper.jpg";
             if (File.Exists(wallpaperPath))
             {
                 Wallpaper = Image.FromFile(wallpaperPath);
@@ -117,7 +137,7 @@ namespace OpenPetsWorld
             #region 杂项
 
             Log.Info("读取杂项数据中…");
-            string MiscPath = "./datapack/misc.json";
+            const string MiscPath = "./datapack/misc.json";
             Misc misc = TryRead<Misc>(MiscPath);
             if (misc != null)
             {
@@ -125,6 +145,13 @@ namespace OpenPetsWorld
                 UnitingPlace = misc.UnitingPlace;
                 Attributes = misc.Attributes;
                 BreaksTime = misc.BreaksTime;
+
+                MaxAttrAdd = misc.MaxAttrAdd;
+                MinAttrAdd = misc.MinAttrAdd;
+                MaxExpAdd = misc.MaxExpAdd;
+                MinExpAdd = misc.MinExpAdd;
+                MaxIQAdd = misc.MaxIQAdd;
+                MinIQAdd = misc.MinIQAdd;
             }
 
             #endregion
@@ -132,7 +159,7 @@ namespace OpenPetsWorld
             #region 物品数据
 
             Log.Info("读取物品数据中…");
-            string itemsDataPath = "./datapack/Items.json";
+            const string itemsDataPath = "./datapack/items.json";
             if (File.Exists(itemsDataPath))
             {
                 var LItemsData = ItemReader.Read(itemsDataPath);
@@ -147,7 +174,7 @@ namespace OpenPetsWorld
             #region 玩家数据
 
             Log.Info("读取玩家数据中…");
-            string playersDataPath = "./data/players.json";
+            const string playersDataPath = "./data/players.json";
             var lPlayerData = TryRead<Dictionary<string, Dictionary<string, Player>>>(playersDataPath);
             if (lPlayerData != null)
             {
@@ -159,7 +186,7 @@ namespace OpenPetsWorld
             #region 宠物池
             
             Log.Info("读取宠物池数据中…");
-            string petPoolPath = "./datapack/PetPool.json";
+            const string petPoolPath = "./datapack/PetPool.json";
             var lPetPool = TryRead<List<Pet>>(petPoolPath);
             if (lPetPool != null)
             {
@@ -171,7 +198,7 @@ namespace OpenPetsWorld
             #region 副本数据
 
             Log.Info("读取副本数据中…");
-            string replicaPath = "./datapack/replicas.json";
+            const string replicaPath = "./datapack/replicas.json";
             if (File.Exists(replicaPath))
             {
                 var lReplicaData = TryRead<List<Replica>>(replicaPath);
@@ -186,14 +213,28 @@ namespace OpenPetsWorld
             #region 商品数据
 
             Log.Info("读取商品数据中…");
-            string pointShopPath = "./datapack/pointshop.json";
+            const string pointShopPath = "./datapack/pointshop.json";
             if (File.Exists(pointShopPath))
             {
                 var lCommData = TryRead<Shop>(pointShopPath);
                 if (lCommData != null)
                 {
-                    lCommData.Initialize();
                     PointShop = lCommData;
+                }
+            }
+
+            #endregion
+
+            #region 礼包数据
+
+            Log.Info("读取礼包数据中…");
+            const string giftsPath = "./datapack/gifts.json";
+            if (File.Exists(giftsPath))
+            {
+                var lGifts = TryRead<List<Gift>>(giftsPath);
+                if (lGifts != null)
+                {
+                    Gifts = lGifts;
                 }
             }
 
@@ -243,8 +284,13 @@ namespace OpenPetsWorld
         {
             #region 玩家数据
 
-            string playerJson = Players.ToJsonString();
-            string path = "./data/players.json";
+            JsonSerializerSettings setting = new JsonSerializerSettings
+            {
+                DefaultValueHandling=DefaultValueHandling.Ignore
+            };
+            
+            string playerJson = Players.ToJsonString(setting);
+            const string path = "./data/players.json";
             if (!Directory.Exists("./data"))
             {
                 Directory.CreateDirectory("./data");

@@ -1,4 +1,5 @@
 using Mirai.Net.Data.Messages.Receivers;
+using Newtonsoft.Json;
 using OpenPetsWorld.Extra;
 using OpenPetsWorld.PetTool;
 using static OpenPetsWorld.OpenPetsWorld;
@@ -28,9 +29,10 @@ public class BaseItem
     /// <summary>
     /// 描述
     /// </summary>
+    [JsonIgnore]
     public string? Description 
     {
-        set => _description = value;
+        init => _description = value;
         get
         {
             var text = _description ?? "无该物品描述";
@@ -46,7 +48,7 @@ public class BaseItem
     /// <summary>
     /// 最低使用等级
     /// </summary>
-    public int Level = 0;
+    protected readonly int Level = 0;
 
     /// <summary>
     /// 配方
@@ -95,19 +97,19 @@ public class BaseItem
         }
 
         Player player = Player.Register(receiver);
-        foreach (var item in Formulation)
+        foreach (var item in Formulation.Items)
         {
             player.Bag.TryGetValue(item.Id, out int itemCount);
 
             int countNeeded = item.Count * count;
             if (itemCount < countNeeded)
             {
-                receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Id]}]不足{countNeeded}个");
+                receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Id].Name}]不足{countNeeded}个");
                 return false;
             }
         }
 
-        foreach (var item in Formulation)
+        foreach (var item in Formulation.Items)
         {
             player.Bag[item.Id] -= item.Count * count;
         }
@@ -227,7 +229,7 @@ public class Resurrection : BaseItem
                     ResHealth = petData.Health = petData.MaxHealth;
                     break;
                 default:
-                    throw new Exception($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
+                    throw new($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
             }
 
             receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{ResHealth}");

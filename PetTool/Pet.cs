@@ -85,6 +85,11 @@ public class Pet
         }
     }
 
+    /// <summary>
+    /// 进化
+    /// </summary>
+    /// <param name="level">进化所需等级</param>
+    /// <returns></returns>
     public int Evolved(out int level)
     {
         level = 0;
