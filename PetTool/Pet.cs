@@ -1,6 +1,6 @@
 using System.Drawing;
-using System.Text.Json.Serialization;
 using Mirai.Net.Data.Messages.Receivers;
+using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using static OpenPetsWorld.OpenPetsWorld;
 using static OpenPetsWorld.Program;
@@ -17,10 +17,34 @@ public class Pet
     public int MaxExperience = 160;
     public int Level = 1;
     public string Name;
-    public string Gender;
+
+    /// <summary>
+    /// 性别
+    /// </summary>
+    [JsonIgnore]
+    public string Gender 
+    { 
+        get
+        { 
+            if (_humanoid)
+            {
+                return _gender ? "男" : "女";
+            }
+
+            return _gender ? "雄" : "雌";
+        }
+    }
+
+    private bool _gender;
+    /// <summary>
+    /// 是否显示为人的性别
+    /// </summary>
+    private bool _humanoid;
+
     public Stage Stage = Stage.Infancy;
     public string Attribute;
     public string Rank;
+    //TODO:完善状态
     public string State = "正常";
     public string? IconName;
     public string PettAlent = "无";
@@ -41,7 +65,7 @@ public class Pet
 
         #region 性别随机
 
-        Gender = RandomBool() ? "雌" : "雄";
+        _gender = RandomBool();
 
         #endregion
 
@@ -58,7 +82,8 @@ public class Pet
         #endregion
     }
 
-    [JsonIgnore] public int Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
+    [JsonIgnore]
+    public int Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
 
     public string GetMoodSymbol()
     {

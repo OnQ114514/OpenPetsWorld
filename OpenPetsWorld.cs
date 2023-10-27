@@ -18,6 +18,10 @@ namespace OpenPetsWorld
 
         public static int BreaksTime = 120;
 
+        /// <summary>
+        /// 怪物入侵
+        /// </summary>
+        public static bool BossIntruding = false;
         public static readonly Dictionary<string, long> SentTime = new();
         public static Dictionary<string, Dictionary<string, Player>> Players = new();
         public static Dictionary<int, BaseItem> Items = new();
@@ -35,6 +39,8 @@ namespace OpenPetsWorld
         public static int MinAttrAdd;
         public static int MaxExpAdd;
         public static int MinExpAdd;
+
+        public static int MaxLevel = 300;
 
         public static bool HavePet(GroupMessageReceiver x, bool send = true)
         {

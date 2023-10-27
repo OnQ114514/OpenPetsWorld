@@ -81,6 +81,7 @@ namespace OpenPetsWorld
             {
                 #region Initialize
 
+                Log.Info("未检测到配置文件，开始初始化，请保持开启Mirai");
                 Console.Write("连接地址（默认为localhost:8080）：");
                 _address = Console.ReadLine();
                 if (_address == string.Empty)
@@ -426,7 +427,7 @@ namespace OpenPetsWorld
                             if (player.Activity(x, 10)) break;
                             int addExp = Random.Next(MinExpAdd, MaxExpAdd);
                             pet.Experience += addExp;
-                            SendAtMessage(groupId, memberId,
+                            x.SendAtMessage(
                                 $"您的【{pet.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+120秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
                         }
 
@@ -439,7 +440,7 @@ namespace OpenPetsWorld
                         {
                             if (player.Activity(x, 10)) break;
                             pet.Intellect += Random.Next(MinIQAdd, MaxIQAdd);
-                            SendAtMessage(groupId, memberId,
+                            x.SendAtMessage(
                                 $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+120秒\n●减少精力：-10点\n●获得智力：+2\n------------------");
                         }
 
@@ -502,39 +503,6 @@ namespace OpenPetsWorld
 
                         break;
                     }
-                //TODO:支持多级升级
-                case "宠物升级":
-                    if (HavePet(x))
-                    {
-                        Pet? pet = Player.Register(x).Pet;
-                        int originalMaxExp = pet.MaxExperience;
-                        if (pet.Experience >= originalMaxExp)
-                        {
-                            int originalPower = pet.Power;
-                            pet.Experience -= originalMaxExp;
-                            pet.Level++;
-                            int n = pet.Level;
-                            int maxExpAdd = 5 * Pow(n, 3) + 15 * Pow(n, 2) + 40 * n + 100;
-                            pet.MaxExperience = maxExpAdd;
-                            int maxHealthAdd = 2 * Pow(n, 2) + 4 * n + 10;
-                            pet.MaxHealth += maxHealthAdd;
-                            int attAndDefAdd = 3 * n + 1;
-                            pet.Attack += attAndDefAdd;
-                            pet.Defense += attAndDefAdd;
-                            x.SendAtMessage($"您的[{pet.Name}]成功升级啦!\n-" + "-----------------\n" + "● 等级提升：+1\n" +
-                                            $"● 经验减少：-{originalMaxExp}\n" + $"● 生命提升：+{maxHealthAdd}\n" +
-                                            $"● 攻击提升：+{attAndDefAdd}\n" + $"● 防御提升：+{attAndDefAdd}\n" +
-                                            $"● 战力提升：+{pet.Power - originalPower}\n" + "------------------");
-                        }
-                        else
-                        {
-                            x.SendAtMessage(
-                                $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!");
-                        }
-                    }
-
-                    break;
-
                 case "卸下神器":
                     if (HavePet(x))
                     {
@@ -719,6 +687,99 @@ namespace OpenPetsWorld
 
                         item.Use(x, count);
                     }
+                    else if (strMess.StartsWith("宠物升级"))
+                    {
+                        int levelsToUpgrade = 1;
+                        if (strMess.Length > 4)
+                        {
+                            _ = int.TryParse(strMess[4..], out levelsToUpgrade);
+                        }
+
+                        if (!HavePet(x, out var pet))
+                        {
+                            break;
+                        }
+
+                        int originalPower = pet.Power;
+                        int currentLevel = pet.Level;
+                        int tempExp = 0;
+                        int allExp = 0;
+                        int allHealth = 0;
+                        int allAttribute = 0;
+                        int addedLevel = 0;
+                        int nextExpNeeded = 0;
+
+                        for (int i = 0; i < levelsToUpgrade; i++)
+                        {
+                            int expNeeded = nextExpNeeded = GetLevelUpExp(currentLevel);
+                            tempExp = allExp + expNeeded;
+
+                            if (allExp > pet.Experience)
+                            {
+                                break;
+                            }
+
+                            allHealth += 2 * Pow(currentLevel, 2) + 4 * currentLevel + 10;
+                            allAttribute += 3 * currentLevel + 1;
+
+                            currentLevel++;
+                            addedLevel++;
+
+                            allExp = tempExp;
+
+                        }
+
+                        if (addedLevel == 0)
+                        {
+                            x.SendAtMessage(
+                                $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!");
+                            return;
+                        }
+
+                        pet.Level = currentLevel;
+                        pet.MaxExperience = nextExpNeeded;
+                        pet.Experience -= allExp;
+                        pet.MaxHealth += allHealth;
+                        pet.Attack += allAttribute;
+                        pet.Defense += allAttribute;
+
+                        x.SendAtMessage($"您的[{pet.Name}]成功升级啦!\n"
+                            + "------------------\n"
+                            + $"● 等级提升：+{addedLevel}\n"
+                            + $"● 经验减少：-{allExp}\n"
+                            + $"● 生命提升：+{allHealth}\n"
+                            + $"● 攻击提升：+{allAttribute}\n"
+                            + $"● 防御提升：+{allAttribute}\n"
+                            + $"● 战力提升：+{pet.Power - originalPower}\n"
+                            + "------------------");
+
+                        /*int originalMaxExp = pet.MaxExperience;
+                        if (pet.Experience >= originalMaxExp)
+                        {
+                            int originalPower = pet.Power;
+                            pet.Experience -= originalMaxExp;
+                            pet.Level++;
+                            int n = pet.Level;// + count;
+                            int maxExp = 5 * Pow(n, 3) + 15 * Pow(n, 2) + 40 * n + 100;
+                            pet.MaxExperience = maxExp;
+                            int maxHealthAdd = 2 * Pow(n, 2) + 4 * n + 10;
+                            pet.MaxHealth += maxHealthAdd;
+                            int attAndDefAdd = 3 * n + 1;
+                            pet.Attack += attAndDefAdd;
+                            pet.Defense += attAndDefAdd;
+                            x.SendAtMessage($"您的[{pet.Name}]成功升级啦!\n-" + "-----------------\n" + "● 等级提升：+1\n" +
+                                            $"● 经验减少：-{originalMaxExp}\n" + $"● 生命提升：+{maxHealthAdd}\n" +
+                                            $"● 攻击提升：+{attAndDefAdd}\n" + $"● 防御提升：+{attAndDefAdd}\n" +
+                                            $"● 战力提升：+{pet.Power - originalPower}\n" + "------------------");
+                        }
+                        else
+                        {
+                            x.SendAtMessage(
+                                $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!");
+                        }*/
+
+                        break;
+                    }
                     else if (strMess.StartsWith("购买"))
                     {
                         Tools.ParseString(chain, 2, out string itemName, out int count, out _);
@@ -774,7 +835,8 @@ namespace OpenPetsWorld
                         }
                         else
                         {
-                            if (Players[x.GroupId].TryGetValue(target, out var player))
+                            var group = Players[x.GroupId];
+                            if (group.TryGetValue(target, out var player))
                             {
                                 player.Bag.MergeValue(item.Id, count);
                             }
@@ -846,23 +908,19 @@ namespace OpenPetsWorld
                     }
                     else if (strMess.StartsWith("宠物商店"))
                     {
-                        int count = strMess[4..].GetCount("");
-                        if (count != -1)
+                        int count = 1;
+                        if (strMess.Length > 4)
                         {
-                            if (count == 0)
-                            {
-                                x.SendAtMessage("格式错误！");
-                                break;
-                            }
-
-                            if (count > 99999)
-                            {
-                                x.SendAtMessage("数量超出范围！");
-                                break;
-                            }
+                            _ = int.TryParse(strMess[4..], out count);
                         }
 
-                        if (count == -1)
+                        if (count > 99999)
+                        {
+                            x.SendAtMessage("数量超出范围！");
+                            break;
+                        }
+
+                        if (count < 0)
                         {
                             count = 1;
                         }
@@ -941,7 +999,7 @@ namespace OpenPetsWorld
 
                         var player = Player.Register(x);
 
-                        if (player.ClaimedGifts.Contains(gift.Id)) 
+                        if (player.ClaimedGifts.Contains(gift.Id))
                         {
                             x.SendAtMessage("你已领取过该礼包，不可重复领取");
                             break;
@@ -1067,6 +1125,11 @@ namespace OpenPetsWorld
             }
         }
 
+        private static int GetLevelUpExp(int level)
+        {
+            return 5 * Pow(level, 3) + 15 * Pow(level, 2) + 40 * level + 100;
+        }
+
         public static void CoverLine(string text = "")
         {
             Console.SetCursorPosition(0, Console.CursorTop);
@@ -1142,10 +1205,7 @@ namespace OpenPetsWorld
 
         #endregion 发送消息
 
-        private static bool HavePermissions(string id)
-        {
-            return _admins.Contains(id) || _masterId == id;
-        }
+        private static bool HavePermissions(string id) => _admins.Contains(id) || _masterId == id;
 
         public static string? GetAtNumber(MessageChain messageChain)
         {
@@ -1175,10 +1235,7 @@ namespace OpenPetsWorld
             ReadData();
         }
 
-        public static long GetNowUnixTime()
-        {
-            return DateTime.UtcNow.ToUnixTime();
-        }
+        public static long GetNowUnixTime() => DateTime.UtcNow.ToUnixTime();
 
         private static bool IsCompliant(GroupMessageReceiver receiver, int count)
         {

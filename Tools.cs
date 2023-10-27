@@ -61,16 +61,20 @@ namespace OpenPetsWorld
         {
             const int hundredMillion = 100000000;
             const int tenThousand = 10000;            
-            const string format = "0.0";
+            //const string format = "0.0";
             decimal origin = v;
             
             if (v >= hundredMillion)
-            {
-                return (origin / hundredMillion).ToString(format) + "E";
+            {                
+                origin /= hundredMillion;
+                return Math.Round(origin, 1, MidpointRounding.ToZero) + "E";
+                //return (origin / hundredMillion).ToString(format) + "E";
             }
             else if (v >= tenThousand)
             {
-                return (origin / tenThousand).ToString(format) + "W";
+                origin /= tenThousand;
+                return Math.Round(origin, 1, MidpointRounding.ToZero) + "W";
+                //return (origin / tenThousand).ToString(format) + "W";
             }
             else
             {
@@ -109,35 +113,6 @@ namespace OpenPetsWorld
             }
 
             return -1;
-        }
-
-        public static int GetICT(this MessageChain v, int skipCount, ref string item, out string? target)
-        {
-            target = null;
-            string symbol = "*";
-            var str = v.GetPlainMessage()[skipCount..];
-            int result;
-            int targetIndex = str.IndexOf("-", StringComparison.Ordinal);
-            if (targetIndex != -1)
-            {
-                result = str.GetCount(symbol[..targetIndex]);
-                var succeed = long.TryParse(str[(targetIndex + 1)..], out long number);
-                target = succeed ? number.ToString() : GetAtNumber(v);
-            }
-            else
-            {
-                result = str.GetCount(symbol);
-            }
-
-            int countIndex = str.IndexOf(symbol, StringComparison.Ordinal);
-            item = countIndex != -1 ? str[..countIndex] : str;
-
-            if (str == string.Empty && result == -1)
-            {
-                return -1;
-            }
-            
-            return 1;
         }
         
         public static void ParseString(MessageChain chain, int skipCount, out string name, out int count, out string? target)

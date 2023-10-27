@@ -13,4 +13,6 @@ public class Misc
     public int MinAttrAdd;
     public int MaxExpAdd;
     public int MinExpAdd;
+
+    public int MaxLevel;
 }
