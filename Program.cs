@@ -391,13 +391,13 @@ namespace OpenPetsWorld
                         Player player = Player.Register(x);
                         if (player.Pet == null)
                         {
-                            if (player.Points < 500)
+                            if (player.Points < ExtractNeededPoint)
                             {
-                                x.SendAtMessage("您的积分不足,无法进行砸蛋!\n【所需[500]积分】\n请发送【签到】获得积分");
+                                x.SendAtMessage($"您的积分不足,无法进行砸蛋!\n【所需[{ExtractNeededPoint}]积分】\n请发送【签到】获得积分");
                                 break;
                             }
 
-                            player.Points -= 500;
+                            player.Points -= ExtractNeededPoint;
                             Pet pet;
                             try
                             {
@@ -410,13 +410,65 @@ namespace OpenPetsWorld
                             }
 
                             player.Pet = pet;
-                            x.SendAtMessage($"恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋");
+
+                            await x.SendMessageAsync(new MessageChainBuilder()
+                                .At(memberId)
+                                .Plain($" 恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋")
+                                .ImageFromBase64(ToBase64(pet.Render()))
+                                .Build());
                         }
                         else
                         {
                             x.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
                         }
 
+                        break;
+                    }
+                case "砸蛋十连":
+                    {
+                        var player = Player.Register(x);
+                        if (player.Pet == null)
+                        {
+                            int neededPoint = ExtractNeededPoint * 10;
+                            if (player.Points < neededPoint)
+                            {
+                                x.SendAtMessage($"您的积分不足,无法进行砸蛋!\n【所需[{neededPoint}]积分】\n请发送【签到】获得积分");
+                                break;
+                            }
+
+                            player.Points -= neededPoint;
+
+                            List<string> texts = new();
+                            List<Pet> pets = new();
+                            for (int i = 0; i < 10; i++)
+                            {
+                                var pet = Pet.Extract();
+                                pets.Add(pet);
+
+                                texts.Add($"[{i + 1}]{pet.Rank}-{pet.Name}");
+                            }
+
+                            #region 绘图
+
+                            using Bitmap bitmap = new(480, 480);
+                            using var graphics = Graphics.FromImage(bitmap);
+                            using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
+
+                            graphics.Clear(Color.White);
+                            graphics.DrawString($"[@{memberId}]", font, Black, 3, 3);
+                            graphics.DrawString("◇指令：选择+数字", font, Black, 3, 440);
+
+                            int y = 40;
+                            foreach (var text in texts)
+                            {
+                                graphics.DrawString(text, font, Black, 3, y);
+                                y += 40;
+                            }
+
+                            #endregion
+
+                            x.SendBmpMessage(bitmap);
+                        }
                         break;
                     }
                 case "修炼":
@@ -601,7 +653,7 @@ namespace OpenPetsWorld
                         using var graphics = Graphics.FromImage(bitmap);
                         using Font font = new("Microsoft YaHei", 23, FontStyle.Bold);
                         graphics.Clear(Color.White);
-                        graphics.DrawString($"[{memberId}]您的财富信息如下：", font, Black, 2, 2);
+                        graphics.DrawString($"[@{memberId}]您的财富信息如下：", font, Black, 2, 2);
                         graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
                         graphics.DrawString($"●积分：{player.Points}", font, Black, 0, 65);
                         graphics.DrawString($"●点券：{player.Bonds}", font, Black, 0, 125);
@@ -611,7 +663,7 @@ namespace OpenPetsWorld
                     }
                 case "我的背包":
                     {
-                        Player player = Player.Register(x);
+                        var player = Player.Register(x);
                         List<string> bagItemList = new();
                         foreach (var bagItem in player.Bag)
                         {
@@ -637,9 +689,11 @@ namespace OpenPetsWorld
                         using Bitmap imageData = new(480, height);
                         using var graphics = Graphics.FromImage(imageData);
                         using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
+
                         graphics.Clear(Color.White);
-                        graphics.DrawString($"[{memberId}]您的背包：", font, Black, 2, 2);
+                        graphics.DrawString($"[@{memberId}]您的背包：", font, Black, 2, 2);
                         graphics.DrawLine(new(Color.Black, 3), new(0, 55), new(480, 55));
+
                         int i = 65;
                         foreach (string itemStr in bagItemList)
                         {

@@ -15,4 +15,6 @@ public class Misc
     public int MinExpAdd;
 
     public int MaxLevel;
+
+    public int ExtractNeededPoint;
 }

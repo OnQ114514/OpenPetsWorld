@@ -27,7 +27,7 @@ namespace OpenPetsWorld
         public static Dictionary<int, BaseItem> Items = new();
         public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
-        public static List<Gift> Gifts = new();
+        public static List<Gift> Gifts = new();        
         
         public static Shop PointShop = new();
 
@@ -41,6 +41,7 @@ namespace OpenPetsWorld
         public static int MinExpAdd;
 
         public static int MaxLevel = 300;
+        public static int ExtractNeededPoint = 500;
 
         public static bool HavePet(GroupMessageReceiver x, bool send = true)
         {
@@ -158,6 +159,8 @@ namespace OpenPetsWorld
                 MinExpAdd = misc.MinExpAdd;
                 MaxIQAdd = misc.MaxIQAdd;
                 MinIQAdd = misc.MinIQAdd;
+
+                ExtractNeededPoint = misc.ExtractNeededPoint;
             }
 
             #endregion
