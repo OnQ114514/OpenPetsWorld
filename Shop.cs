@@ -1,8 +1,8 @@
-using System.Drawing;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
-using static OpenPetsWorld.Program;
+using System.Drawing;
 using static OpenPetsWorld.OpenPetsWorld;
+using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld;
 
@@ -29,7 +29,7 @@ public class Shop
             string type = item.ItemType.ToStr();
             return $"[{type}]·{item.Name} {price}";
         }).ToList().SafeGetRange(count - 1, 10);
-        
+
         Bitmap bitmap = new(480, 600);
         using var graphics = Graphics.FromImage(bitmap);
         using Font font = new("微软雅黑", 22);
@@ -41,7 +41,7 @@ public class Shop
         graphics.DrawString($"页数：{count}/{_pagesCount}", font, Black, 280, 445);
         graphics.DrawString($"◇指令：{Name}+页数", font, Black, 5, 480);
         graphics.DrawString($"◇指令：{Command}+物品*数量", font, Black, 5, 520);
-                    
+
         int coord = 45;
         foreach (var comm in commList)
         {

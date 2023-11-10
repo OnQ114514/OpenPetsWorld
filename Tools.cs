@@ -1,8 +1,8 @@
-﻿using System.Drawing;
-using Mirai.Net.Data.Messages;
-using static OpenPetsWorld.Program;
+﻿using Mirai.Net.Data.Messages;
 using Mirai.Net.Data.Messages.Receivers;
 using Mirai.Net.Utils.Scaffolds;
+using System.Drawing;
+using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld
 {
@@ -60,12 +60,12 @@ namespace OpenPetsWorld
         public static string ToFormat(this int v)
         {
             const int hundredMillion = 100000000;
-            const int tenThousand = 10000;            
+            const int tenThousand = 10000;
             //const string format = "0.0";
             decimal origin = v;
-            
+
             if (v >= hundredMillion)
-            {                
+            {
                 origin /= hundredMillion;
                 return Math.Round(origin, 1, MidpointRounding.ToZero) + "E";
                 //return (origin / hundredMillion).ToString(format) + "E";
@@ -81,7 +81,7 @@ namespace OpenPetsWorld
                 return v.ToString();
             }
         }
-        
+
         public static string ToSignedString(this int value)
         {
             if (value > 0)
@@ -91,7 +91,7 @@ namespace OpenPetsWorld
 
             return value.ToString();
         }
-        
+
         public static int GetCount(this string v, string symbol = "*")
         {
             if (v == string.Empty)
@@ -114,7 +114,7 @@ namespace OpenPetsWorld
 
             return -1;
         }
-        
+
         public static void ParseString(MessageChain chain, int skipCount, out string name, out int count, out string? target)
         {
             string plainMessage = chain.GetPlainMessage()[skipCount..];

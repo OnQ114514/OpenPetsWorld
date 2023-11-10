@@ -23,21 +23,21 @@ public class BaseItem
     /// 类型
     /// </summary>
     public ItemType ItemType;
-    
+
     private string? _description;
-    
+
     /// <summary>
     /// 描述
     /// </summary>
     [JsonIgnore]
-    public string? Description 
+    public string? Description
     {
         init => _description = value;
         get
         {
             var text = _description ?? "无该物品描述";
             return text;
-        } 
+        }
     }
 
     /// <summary>
@@ -113,11 +113,11 @@ public class BaseItem
         {
             player.Bag[item.Id] -= item.Count * count;
         }
-        
+
         player.Bag.MergeValue(Id, count);
         return true;
     }
-    
+
     public static FItem operator *(BaseItem item, int count)
     {
         return new FItem()
@@ -328,7 +328,7 @@ public class Gain : BaseItem
             {
                 $"成功使用[{Name}] ×{count}，触发以下效果："
             };
-            
+
             if (Attack != 0) message.Add($"◇攻击永久提升：{Attack}");
             if (Defense != 0) message.Add($"◇防御永久提升：{Defense}");
             if (Intellect != 0) message.Add($"◇智力永久提升：{Intellect}");
@@ -336,7 +336,7 @@ public class Gain : BaseItem
             if (Health != 0) message.Add($"◇精力永久提升：{MaxEnergy}");
             if (Experience != 0) message.Add($"◇获得经验：{Experience}");
             if (Points != 0) message.Add($"◇获得积分：{Points}");
-            
+
             pet.Attack += Attack;
             pet.Defense += Defense;
             pet.Intellect += Intellect;
@@ -345,7 +345,7 @@ public class Gain : BaseItem
             pet.MaxEnergy += MaxEnergy;
 
             player.Points += Points;
-            
+
             receiver.SendAtMessage(string.Join("\n", message));
             return true;
         }
@@ -369,7 +369,7 @@ public class PetItem : BaseItem
             player.Pet = _pet;
             return true;
         }
-        
+
         return false;
     }
 }

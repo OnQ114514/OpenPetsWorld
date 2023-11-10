@@ -1,7 +1,8 @@
 using Mirai.Net.Data.Messages.Receivers;
+using Newtonsoft.Json;
 using OpenPetsWorld.PetTool;
-using static OpenPetsWorld.Program;
 using static OpenPetsWorld.OpenPetsWorld;
+using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld;
 
@@ -44,7 +45,10 @@ public class Player
 
     public List<int> ClaimedGifts = new();
 
-    public long LastActivityUnixTime = 0;
+    public long LastActivityUnixTime;
+
+    [JsonIgnore]
+    public List<Pet>? GachaPets = null;
 
     public static Player Register(GroupMessageReceiver x)
     {
@@ -87,11 +91,11 @@ public class Player
             //receiver.SendAtMessage("");
             return false;
         }
-        
+
         Pet.Energy -= energy;
         return true;
     }
-    
+
     public bool CanActivity(GroupMessageReceiver receiver)
     {
         return CanActivity(receiver.GroupId, receiver.Sender.Id);

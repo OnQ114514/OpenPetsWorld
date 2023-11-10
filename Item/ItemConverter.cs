@@ -1,9 +1,9 @@
 namespace OpenPetsWorld.Item;
 
-using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 
 public class ItemConverter : JsonConverter
 {
@@ -22,7 +22,7 @@ public class ItemConverter : JsonConverter
         {
             var token = jsonObject[key.ToString()];
             var type = token["ItemType"].ToObject<ItemType>();
-            
+
             BaseItem? value = type switch
             {
                 ItemType.Material => token.ToObject<Material>(),
@@ -33,7 +33,7 @@ public class ItemConverter : JsonConverter
                 ItemType.Pet => token.ToObject<PetItem>(),
                 _ => throw new ArgumentOutOfRangeException()
             };
-            
+
             dictionary.Add(key, value);
         }
 

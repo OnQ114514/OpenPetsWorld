@@ -1,11 +1,11 @@
-﻿using System.Drawing;
-using Manganese.Text;
-using Newtonsoft.Json;
+﻿using Manganese.Text;
 using Mirai.Net.Data.Messages.Receivers;
-using static OpenPetsWorld.Program;
-using File = System.IO.File;
+using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using OpenPetsWorld.PetTool;
+using System.Drawing;
+using static OpenPetsWorld.Program;
+using File = System.IO.File;
 
 namespace OpenPetsWorld
 {
@@ -27,8 +27,8 @@ namespace OpenPetsWorld
         public static Dictionary<int, BaseItem> Items = new();
         public static List<Pet> PetPool = new();
         public static List<Replica> Replicas = new();
-        public static List<Gift> Gifts = new();        
-        
+        public static List<Gift> Gifts = new();
+
         public static Shop PointShop = new();
 
         public static Image Wallpaper = new Bitmap(650, 500);
@@ -98,10 +98,10 @@ namespace OpenPetsWorld
             {
                 return gifts[0];
             }
-            
+
             return null;
         }
-        
+
         public static BaseItem? FindItem(string itemName)
         {
             var items = Items.Values.Where(item => item.Name == itemName).ToList();
@@ -117,8 +117,8 @@ namespace OpenPetsWorld
         {
             Replica? replica = null;
             foreach (var lReplica in from lReplica in Replicas
-                     where lReplica.Name == replicaName
-                     select lReplica)
+                                     where lReplica.Name == replicaName
+                                     select lReplica)
             {
                 replica = lReplica;
                 break;
@@ -140,7 +140,7 @@ namespace OpenPetsWorld
             }
 
             #endregion
-            
+
             #region 杂项
 
             Log.Info("读取杂项数据中…");
@@ -193,7 +193,7 @@ namespace OpenPetsWorld
             #endregion
 
             #region 宠物池
-            
+
             Log.Info("读取宠物池数据中…");
             const string petPoolPath = "./datapack/PetPool.json";
             var lPetPool = TryRead<List<Pet>>(petPoolPath);
@@ -272,7 +272,7 @@ namespace OpenPetsWorld
 
         static void ErrorDispose(string path)
         {
-            ReInput:
+        ReInput:
             Console.Write("检测到读取数据文件时发生错误，是否删除数据文件？(true/false):");
             if (!bool.TryParse(Console.ReadLine(), out bool delConfig))
             {
@@ -295,9 +295,9 @@ namespace OpenPetsWorld
 
             JsonSerializerSettings setting = new JsonSerializerSettings
             {
-                DefaultValueHandling=DefaultValueHandling.Ignore
+                DefaultValueHandling = DefaultValueHandling.Ignore
             };
-            
+
             string playerJson = Players.ToJsonString(setting);
             const string path = "./data/players.json";
             if (!Directory.Exists("./data"))

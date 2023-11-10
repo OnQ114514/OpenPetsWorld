@@ -11,13 +11,13 @@ public class Logger
     {
 
     }
-        
+
     public Logger(string path)
     {
         TextWriterTraceListener listener = new TextWriterTraceListener(File.CreateText(path));
         Trace.Listeners.Add(listener);
     }
-        
+
     public void Info(string message)
     {
         Out(message, "INFO");
@@ -42,7 +42,7 @@ public class Logger
         string time = DateTime.Now.ToString("HH:mm:ss");
         LogCoverLine($"[{time}] [{level}]: {message}");
     }
-        
+
     private static void LogCoverLine(string text = "")
     {
         Console.SetCursorPosition(0, Console.CursorTop);

@@ -11,7 +11,7 @@ public class Formulation
     public int Experience = 0;
     public int Points = 0;
     public int Bonds = 0;
-    
+
     public List<FItem> Items = new();
 }
 

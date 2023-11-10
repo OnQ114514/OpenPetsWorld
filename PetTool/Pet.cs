@@ -1,7 +1,7 @@
-using System.Drawing;
 using Mirai.Net.Data.Messages.Receivers;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
+using System.Drawing;
 using static OpenPetsWorld.OpenPetsWorld;
 using static OpenPetsWorld.Program;
 
@@ -22,10 +22,10 @@ public class Pet
     /// 性别
     /// </summary>
     [JsonIgnore]
-    public string Gender 
-    { 
+    public string Gender
+    {
         get
-        { 
+        {
             if (_humanoid)
             {
                 return _gender ? "男" : "女";
@@ -35,6 +35,9 @@ public class Pet
         }
     }
 
+    /// <summary>
+    /// 实际性别
+    /// </summary>
     private bool _gender;
     /// <summary>
     /// 是否显示为人的性别
@@ -147,9 +150,9 @@ public class Pet
         return 0;
     }
 
-    public static Pet Extract()
+    public static Pet Gacha()
     {
-        int index = Program.Random.Next(0, PetPool.Count);
+        var index = Program.Random.Next(0, PetPool.Count);
         return PetPool[index];
     }
 
