@@ -43,12 +43,28 @@ public class Player
     /// </summary>
     public Pet? Pet;
 
+    /// <summary>
+    /// 已领取的礼包ID
+    /// </summary>
     public List<int> ClaimedGifts = new();
 
+    /// <summary>
+    /// 上次活动时间
+    /// </summary>
+    [JsonIgnore]
     public long LastActivityUnixTime;
 
+    /// <summary>
+    /// 砸蛋十连抽到的宠物
+    /// </summary>
     [JsonIgnore]
     public List<Pet>? GachaPets = null;
+
+    /// <summary>
+    /// 发送放生的时间
+    /// </summary>
+    [JsonIgnore]
+    public long SentFreeUnixTime;
 
     public static Player Register(GroupMessageReceiver x)
     {

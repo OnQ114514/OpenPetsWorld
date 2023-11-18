@@ -10,4 +10,5 @@ public class Config
     public bool BlackListMode = false;
     public string MasterId = "";
     public List<string> Admins = new();
+    public string BootText = "TAKE OFF TOWARD THE DREAM";
 }

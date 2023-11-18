@@ -36,12 +36,13 @@ internal static class Program
     private static readonly HttpClient HttpClient = new();
     public static readonly Random Random = new();
     public static Logger Log;
+    private static string _bootText = "";
 
     private static async Task Main()
     {
         Console.Title = "OpenPetWorld控制台";
 
-        var configPath = "./config.json";
+        const string configPath = "./config.json";
         if (File.Exists(configPath))
         {
             #region ReadConfig
@@ -200,7 +201,7 @@ internal static class Program
             var commands = input.Split(' ');
             switch (commands[0])
             {
-                case "clearconfig":
+                case "delconfig":
                     File.Delete("./config.txt");
                     Console.WriteLine("已清除配置");
                     break;
@@ -312,7 +313,7 @@ internal static class Program
         if (strMess == "开OPW" && HavePermissions(memberId) && notRunning)
         {
             _notRunningGroup.Remove(groupId);
-            x.SendAtMessage("本群已开启文字游戏OpenPetsWorld[本游戏完全开源]\nTAKE OFF TOWARD THE DREAM");
+            x.SendAtMessage($"本群已开启文字游戏OpenPetsWorld[本游戏完全开源]\n{_bootText}");
         }
 
         if (notRunning) return;
@@ -320,7 +321,7 @@ internal static class Program
         switch (strMess)
         {
             case "OpenPetsWorld":
-                await x.SendMessageAsync("由OpenPetsWorld Pre.2强力驱动");
+                await x.SendMessageAsync("由OpenPetsWorld Pre.3强力驱动");
                 break;
 
             case "关OPW":
@@ -334,7 +335,7 @@ internal static class Program
 
             case "宠物世界":
             {
-                var menuPath = "./datapack/menu.png";
+                const string menuPath = "./datapack/menu.png";
 
                 if (!File.Exists(menuPath))
                 {
@@ -444,6 +445,7 @@ internal static class Program
                     #endregion
 
                     x.SendBmpMessage(bitmap);
+                    break;
                 }
 
                 x.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
@@ -458,7 +460,7 @@ internal static class Program
                     var addExp = Random.Next(MinExpAdd, MaxExpAdd);
                     pet.Experience += addExp;
                     x.SendAtMessage(
-                        $"您的【{pet.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+120秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
+                        $"您的【{pet.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+{BreaksTime}秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
                 }
 
                 break;
@@ -469,9 +471,10 @@ internal static class Program
                 if (HavePet(x, out var pet))
                 {
                     if (player.Activity(x, 10)) break;
-                    pet.Intellect += Random.Next(MinIQAdd, MaxIQAdd);
+                    var intellectAdd = Random.Next(MinIQAdd, MaxIQAdd)
+                    pet.BaseIntellect += intellectAdd;
                     x.SendAtMessage(
-                        $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+120秒\n●减少精力：-10点\n●获得智力：+2\n------------------");
+                        $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+{BreaksTime}秒\n●减少精力：-10点\n●获得智力：+{intellectAdd}\n------------------");
                 }
 
                 break;
@@ -482,17 +485,17 @@ internal static class Program
                 if (HavePet(x, out var pet))
                 {
                     if (player.Activity(x, 10)) break;
-                    pet.Intellect--;
+                    pet.BaseIntellect--;
                     var addAttr = RandomBool();
                     var addAttrNumber = Random.Next(MinAttrAdd, MaxAttrAdd);
                     var addAttText = addAttr ? "攻击" : "防御";
                     if (addAttr)
-                        pet.Attack += addAttrNumber;
+                        pet.BaseAttack += addAttrNumber;
                     else
-                        pet.Defense += addAttrNumber;
+                        pet.BaseDefense += addAttrNumber;
 
                     x.SendAtMessage(
-                        $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+120秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttrNumber}\n------------------");
+                        $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+{BreaksTime}秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttrNumber}\n------------------");
                 }
 
                 break;
@@ -542,25 +545,27 @@ internal static class Program
             case "宠物放生":
                 if (HavePet(x))
                 {
-                    var pet = Player.Register(x).Pet;
+                    var player = Player.Register(x);
+                    var pet = player.Pet;
                     x.SendAtMessage(
                         $"危险操作\n（LV·{pet.Level}-{pet.Rank}-{pet.Name}）\n将被放生，请在1分钟内回复：\n【确定放生】");
-                    SentTime[memberId] = GetNowUnixTime();
+                    player.SentFreeUnixTime = GetNowUnixTime();
                 }
 
                 break;
 
             case "确定放生":
-                if (SentTime.ContainsKey(memberId))
-                    if (GetNowUnixTime() - SentTime[memberId] <= 60)
-                    {
-                        Player.Register(x).Pet = null;
-                        SentTime.Remove(memberId);
-                        x.SendAtMessage("成功放生宠物,您的宠物屁颠屁颠的走了!");
-                    }
+            {
+                var player = Player.Register(x);
+                if (GetNowUnixTime() - player.SentFreeUnixTime <= 60)
+                {
+                    player.SentFreeUnixTime = 0;
+                    player.Pet = null;
+                    x.SendAtMessage("成功放生宠物,您的宠物屁颠屁颠的走了!");
+                }
 
                 break;
-
+            }
             case "签到":
             {
                 var player = Player.Register(x);
@@ -633,12 +638,11 @@ internal static class Program
             {
                 var player = Player.Register(x);
                 List<string> bagItemList = new();
-                foreach (var bagItem in player.Bag)
+                foreach (var (id, count) in player.Bag)
                 {
-                    var item = Items[bagItem.Key];
+                    var item = Items[id];
                     var type = item.ItemType.ToStr();
 
-                    var count = bagItem.Value;
                     if (count != 0) bagItemList.Add($"●[{type}]:{item.Name}⨉{count}");
                 }
 
@@ -719,7 +723,7 @@ internal static class Program
                     var nextExpNeeded = 0;
 
                     for (var i = 0; i < levelsToUpgrade; i++)
-                    {
+                    {                                                                                                                                                   
                         var expNeeded = nextExpNeeded = GetLevelUpExp(currentLevel);
                         var tempExp = allExp + expNeeded;
 
@@ -851,14 +855,18 @@ internal static class Program
                 }
                 else if (strMess.StartsWith("选择"))
                 {
+                    if (!(strMess.Length > 2 && int.TryParse(strMess[2..], out var decidedCount) && decidedCount > 0)) return;
+
                     var player = Player.Register(x);
 
                     if (player.GachaPets == null) return;
 
-                    if (player.Pet != null) x.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
+                    if (player.Pet != null)
+                    {
+                        x.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
+                        break;
+                    }
 
-                    var decidedCount = 0;
-                    if (strMess.Length > 2 && int.TryParse(strMess[2..], out decidedCount) && decidedCount > 0) return;
 
                     var pet = player.GachaPets[decidedCount - 1];
 
@@ -1130,14 +1138,13 @@ internal static class Program
 
     private static void NewEnergyRecovery(object? sender, ElapsedEventArgs e)
     {
-        foreach (var group in Players.Values)
-        foreach (var player in group.Values)
+        foreach (var player in Players.Values.SelectMany(group => group.Values))
             player.EnergyAdd();
     }
 
     private static void WriteConfig()
     {
-        var path = "./config.json";
+        const string path = "./config.json";
         Config config = new()
         {
             Address = _address,
@@ -1149,15 +1156,17 @@ internal static class Program
             BlackListMode = _blackListMode,
             NotRunningGroup = _notRunningGroup
         };
-        var json = JsonConvert.SerializeObject(config);
+        var json = config.ToJsonString();
         File.WriteAllText(path, json);
     }
 
     private static void ReadConfig()
     {
-        var path = "./config.json";
+        const string path = "./config.json";
         var json = File.ReadAllText(path);
         var config = JsonConvert.DeserializeObject<Config>(json);
+
+        if (config == null) return;
 
         _address = config.Address;
         _qqNumber = config.QNumber;
@@ -1167,6 +1176,7 @@ internal static class Program
         _groupList = config.GroupList;
         _blackListMode = config.BlackListMode;
         _notRunningGroup = config.NotRunningGroup;
+        _bootText = config.BootText;
     }
 
     private static bool HavePermissions(string id)
@@ -1177,9 +1187,7 @@ internal static class Program
     public static string? GetAtNumber(MessageChain messageChain)
     {
         var atMessages = messageChain.OfType<AtMessage>().ToList();
-        if (atMessages.Count != 0) return atMessages[0].Target;
-
-        return null;
+        return atMessages.Count != 0 ? atMessages[0].Target : null;
     }
 
     private static string GetQNumber()
@@ -1201,27 +1209,24 @@ internal static class Program
 
     public static long GetNowUnixTime()
     {
-        return DateTime.UtcNow.ToUnixTime();
+        return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
     private static bool IsCompliant(GroupMessageReceiver receiver, int count)
     {
-        if (count != -1)
+        switch (count)
         {
-            if (count == 0)
-            {
+            case -1:
+                return true;
+            case 0:
                 receiver.SendAtMessage("格式错误！");
                 return false;
-            }
-
-            if (count > 99999)
-            {
+            case > 99999:
                 receiver.SendAtMessage("数量超出范围！");
                 return false;
-            }
+            default:
+                return true;
         }
-
-        return true;
     }
 
     private static void KeysExit()

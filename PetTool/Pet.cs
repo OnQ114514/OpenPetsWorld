@@ -12,11 +12,30 @@ public class Pet
     public int Energy = 100;
     public int Health;
     public int Experience;
-    public int MaxEnergy = 100;
-    public int MaxHealth;
-    public int MaxExperience = 160;
     public int Level = 1;
     public string Name;
+    public int MaxExperience = 160;
+
+    [JsonIgnore]
+    public int MaxEnergy => BaseMaxEnergy + Artifact.Energy;
+
+    [JsonIgnore]
+    public int MaxHealth => BaseMaxHealth + Artifact.Health;
+
+    [JsonIgnore]
+    public int Intellect => BaseIntellect + Artifact.Intellect;
+
+    [JsonIgnore]
+    public int Attack => BaseAttack + Artifact.Attack;
+
+    [JsonIgnore]
+    public int Defense => BaseDefense + Artifact.Defense;
+
+    public int BaseMaxEnergy = 100;
+    public int BaseMaxHealth;
+    public int BaseIntellect = 4;
+    public int BaseAttack = 10;
+    public int BaseDefense = 10;
 
     /// <summary>
     /// 性别
@@ -51,9 +70,7 @@ public class Pet
     public string State = "正常";
     public string? IconName;
     public string PettAlent = "无";
-    public int Intellect = 4;
-    public int Attack = 10;
-    public int Defense = 10;
+    
     public Artifact Artifact = Artifact.Null;
     public int Mood = 50;
     public List<Morphology>? Morphologies;
@@ -159,7 +176,7 @@ public class Pet
     public int Damage(Pet myPet)
     {
         return (myPet.Attack + myPet.Intellect * 20) *
-               (1 - (Defense * Intellect * 20) / (Attack + Defense + Health / 10 + Intellect * 20));
+               (1 - Defense * Intellect * 20 / (Attack + Defense + Health / 10 + Intellect * 20));
     }
 
     public bool RemoveArtifact(GroupMessageReceiver receiver)
@@ -169,7 +186,7 @@ public class Pet
             return false;
         }
 
-        Player player = Player.Register(receiver);
+        var player = Player.Register(receiver);
         player.Bag.MergeValue(Artifact.Id, 1);
         Artifact = Artifact.Null;
 
@@ -181,7 +198,7 @@ public class Pet
         var image = (Image)Wallpaper.Clone();
         using var graphics = Graphics.FromImage(image);
 
-        string iconPath = $"./datapack/peticon/{IconName}";
+        var iconPath = $"./datapack/peticon/{IconName}";
         if (IconName != null && File.Exists(iconPath))
         {
             graphics.DrawImage(Image.FromFile(iconPath), 5, 5, 380, 380);
@@ -219,7 +236,7 @@ public class Pet
         };
 
         int n2 = 20;
-        foreach (string abText in abTexts2)
+        foreach (var abText in abTexts2)
         {
             graphics.DrawString("◆" + abText, YaHei, Black, 395, n2);
             n2 += 35;
