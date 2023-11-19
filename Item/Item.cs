@@ -320,37 +320,36 @@ public class Gain : BaseItem
 
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
-        if (base.Use(receiver, count))
+        if (!base.Use(receiver, count)) return false;
+
+        var player = Player.Register(receiver);
+        var pet = player.Pet;
+
+        List<string> message = new()
         {
-            Player player = Player.Register(receiver);
-            Pet pet = player.Pet;
-            List<string> message = new()
-            {
-                $"成功使用[{Name}] ×{count}，触发以下效果："
-            };
+            $"成功使用[{Name}] ×{count}，触发以下效果："
+        };
 
-            if (Attack != 0) message.Add($"◇攻击永久提升：{Attack}");
-            if (Defense != 0) message.Add($"◇防御永久提升：{Defense}");
-            if (Intellect != 0) message.Add($"◇智力永久提升：{Intellect}");
-            if (Health != 0) message.Add($"◇生命永久提升：{Health}");
-            if (Health != 0) message.Add($"◇精力永久提升：{MaxEnergy}");
-            if (Experience != 0) message.Add($"◇获得经验：{Experience}");
-            if (Points != 0) message.Add($"◇获得积分：{Points}");
+        if (Attack != 0) message.Add($"◇攻击永久提升：{Attack}");
+        if (Defense != 0) message.Add($"◇防御永久提升：{Defense}");
+        if (Intellect != 0) message.Add($"◇智力永久提升：{Intellect}");
+        if (Health != 0) message.Add($"◇生命永久提升：{Health}");
+        if (Health != 0) message.Add($"◇精力永久提升：{MaxEnergy}");
+        if (Experience != 0) message.Add($"◇获得经验：{Experience}");
+        if (Points != 0) message.Add($"◇获得积分：{Points}");
 
-            pet.Attack += Attack;
-            pet.Defense += Defense;
-            pet.Intellect += Intellect;
-            pet.Health += Health;
-            pet.Experience += Experience;
-            pet.MaxEnergy += MaxEnergy;
+        pet.BaseAttack += Attack;
+        pet.BaseDefense += Defense;
+        pet.BaseIntellect += Intellect;
+        pet.Health += Health;
+        pet.Experience += Experience;
+        pet.BaseMaxEnergy += MaxEnergy;
 
-            player.Points += Points;
+        player.Points += Points;
 
-            receiver.SendAtMessage(string.Join("\n", message));
-            return true;
-        }
+        receiver.SendAtMessage(string.Join("\n", message));
+        return true;
 
-        return false;
     }
 }
 

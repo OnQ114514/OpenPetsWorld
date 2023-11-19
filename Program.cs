@@ -471,7 +471,7 @@ internal static class Program
                 if (HavePet(x, out var pet))
                 {
                     if (player.Activity(x, 10)) break;
-                    var intellectAdd = Random.Next(MinIQAdd, MaxIQAdd)
+                    var intellectAdd = Random.Next(MinIQAdd, MaxIQAdd);
                     pet.BaseIntellect += intellectAdd;
                     x.SendAtMessage(
                         $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+{BreaksTime}秒\n●减少精力：-10点\n●获得智力：+{intellectAdd}\n------------------");
@@ -723,7 +723,13 @@ internal static class Program
                     var nextExpNeeded = 0;
 
                     for (var i = 0; i < levelsToUpgrade; i++)
-                    {                                                                                                                                                   
+                    {
+                        if (currentLevel == MaxLevel)
+                        {
+                            x.SendAtMessage("你的宠物等级已达最高等级！");
+                            return;
+                        }
+
                         var expNeeded = nextExpNeeded = GetLevelUpExp(currentLevel);
                         var tempExp = allExp + expNeeded;
 
@@ -748,9 +754,9 @@ internal static class Program
                     pet.Level = currentLevel;
                     pet.MaxExperience = nextExpNeeded;
                     pet.Experience -= allExp;
-                    pet.MaxHealth += allHealth;
-                    pet.Attack += allAttribute;
-                    pet.Defense += allAttribute;
+                    pet.BaseMaxHealth += allHealth;
+                    pet.BaseAttack += allAttribute;
+                    pet.BaseDefense += allAttribute;
 
                     x.SendAtMessage($"您的[{pet.Name}]成功升级啦!\n"
                                     + "------------------\n"
@@ -855,7 +861,8 @@ internal static class Program
                 }
                 else if (strMess.StartsWith("选择"))
                 {
-                    if (!(strMess.Length > 2 && int.TryParse(strMess[2..], out var decidedCount) && decidedCount > 0)) return;
+                    if (!(strMess.Length > 2 && int.TryParse(strMess[2..], out var decidedCount) &&
+                          decidedCount > 0)) return;
 
                     var player = Player.Register(x);
 
