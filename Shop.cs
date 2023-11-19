@@ -22,11 +22,11 @@ public class Shop
 
     public Bitmap Render(int count)
     {
-        List<string> commList = Commodities.Select(commodity =>
+        var commList = Commodities.Select(commodity =>
         {
-            BaseItem item = Items[commodity.Key];
+            var item = Items[commodity.Key];
             int price = commodity.Value;
-            string type = item.ItemType.ToStr();
+            var type = item.ItemType.ToStr();
             return $"[{type}]·{item.Name} {price}";
         }).ToList().SafeGetRange(count - 1, 10);
 

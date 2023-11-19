@@ -79,7 +79,7 @@ public class Pet
     {
         //示例宠物
         IconName = "kiana.jpg";
-        MaxHealth = Program.Random.Next(100, 301);
+        BaseMaxHealth = Program.Random.Next(100, 301);
         Health = MaxHealth;
         Name = "test";
 
@@ -107,7 +107,7 @@ public class Pet
 
     public string GetMoodSymbol()
     {
-        string star = string.Empty;
+        var star = string.Empty;
         int starNumber = (int)Math.Round((double)Mood / 10);
         for (int i = 0; i < starNumber; i++)
         {
@@ -173,6 +173,7 @@ public class Pet
         return PetPool[index];
     }
 
+    //TODO:支持动态公式
     public int Damage(Pet myPet)
     {
         return (myPet.Attack + myPet.Intellect * 20) *
