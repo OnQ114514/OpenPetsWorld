@@ -22,15 +22,39 @@ namespace OpenPetsWorld
         /// 怪物入侵
         /// </summary>
         public static bool BossIntruding = false;
-        public static readonly Dictionary<string, long> SentTime = new();
+        /// <summary>
+        /// 玩家数据
+        /// </summary>
         public static Dictionary<string, Dictionary<string, Player>> Players = new();
+        /// <summary>
+        /// 物品
+        /// </summary>
         public static Dictionary<int, BaseItem> Items = new();
+        /// <summary>
+        /// 宠物卡池
+        /// </summary>
         public static List<Pet> PetPool = new();
+        /// <summary>
+        /// 副本
+        /// </summary>
         public static List<Replica> Replicas = new();
+        /// <summary>
+        /// 礼包
+        /// </summary>
         public static List<Gift> Gifts = new();
+        /// <summary>
+        /// 宠物神榜刷新时间
+        /// </summary>
+        public static string UpdateTime = "";
 
+        /// <summary>
+        /// 积分商店
+        /// </summary>
         public static Shop PointShop = new();
 
+        /// <summary>
+        /// 背景
+        /// </summary>
         public static Image Wallpaper = new Bitmap(650, 500);
 
         public static int MaxIQAdd;
@@ -41,6 +65,9 @@ namespace OpenPetsWorld
         public static int MinExpAdd;
 
         public static int MaxLevel = 300;
+        /// <summary>
+        /// 单次砸蛋所需积分
+        /// </summary>
         public static int ExtractNeededPoint = 500;
 
         public static bool HavePet(GroupMessageReceiver x, bool send = true)
@@ -55,7 +82,7 @@ namespace OpenPetsWorld
 
         public static bool HavePet(string groupId, string memberId, bool send = true)
         {
-            Player playerData = Player.Register(groupId, memberId);
+            var playerData = Player.Register(groupId, memberId);
             if (playerData.Pet != null)
             {
                 return true;
@@ -83,48 +110,24 @@ namespace OpenPetsWorld
 
         public static bool HavePet(Player playerData)
         {
-            if (playerData.Pet != null)
-            {
-                return true;
-            }
-
-            return false;
+            return playerData.Pet != null;
         }
 
         public static Gift? FindGift(string giftName)
         {
             var gifts = Gifts.Where(gifts => gifts.Name == giftName).ToList();
-            if (gifts.Count != 0)
-            {
-                return gifts[0];
-            }
-
-            return null;
+            return gifts.Count != 0 ? gifts[0] : null;
         }
 
         public static BaseItem? FindItem(string itemName)
         {
             var items = Items.Values.Where(item => item.Name == itemName).ToList();
-            if (items.Count != 0)
-            {
-                return items[0];
-            }
-
-            return null;
+            return items.Count != 0 ? items[0] : null;
         }
 
         public static Replica? FindReplica(string replicaName)
         {
-            Replica? replica = null;
-            foreach (var lReplica in from lReplica in Replicas
-                                     where lReplica.Name == replicaName
-                                     select lReplica)
-            {
-                replica = lReplica;
-                break;
-            }
-
-            return replica;
+            return (from lReplica in Replicas where lReplica.Name == replicaName select lReplica).FirstOrDefault();
         }
 
         #region 读写数据文件
@@ -252,40 +255,40 @@ namespace OpenPetsWorld
 
         public static T? TryRead<T>(string dataPath) where T : class
         {
-            if (File.Exists(dataPath))
+            if (!File.Exists(dataPath)) return null;
+
+            try
             {
-                try
-                {
-                    string json = File.ReadAllText(dataPath);
-                    var data = JsonConvert.DeserializeObject<T>(json);
-                    return data;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                    ErrorDispose(dataPath);
-                }
+                var json = File.ReadAllText(dataPath);
+                var data = JsonConvert.DeserializeObject<T>(json);
+                return data;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                ErrorDispose(dataPath);
             }
 
             return null;
         }
 
-        static void ErrorDispose(string path)
+        private static void ErrorDispose(string path)
         {
-        ReInput:
-            Console.Write("检测到读取数据文件时发生错误，是否删除数据文件？(true/false):");
-            if (!bool.TryParse(Console.ReadLine(), out bool delConfig))
+            while (true)
             {
-                goto ReInput;
-            }
+                Console.Write("检测到读取数据文件时发生错误，是否删除数据文件？(Y/N):");
 
-            if (delConfig)
-            {
-                File.Delete(path);
-            }
-            else
-            {
-                Environment.Exit(0);
+                var input = Console.ReadLine();
+                switch (input)
+                {
+                    case "N":
+                        KeysExit();
+                        break;
+                    case "Y":
+                        File.Delete(path);
+                        KeysExit();
+                        break;
+                }
             }
         }
 

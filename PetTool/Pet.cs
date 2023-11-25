@@ -31,10 +31,15 @@ public class Pet
     [JsonIgnore]
     public int Defense => BaseDefense + Artifact.Defense;
 
+    [JsonProperty(PropertyName = "MaxEnergy")]
     public int BaseMaxEnergy = 100;
+    [JsonProperty(PropertyName = "MaxHealth")]
     public int BaseMaxHealth;
+    [JsonProperty(PropertyName = "Intellect")]
     public int BaseIntellect = 4;
+    [JsonProperty(PropertyName = "Attack")]
     public int BaseAttack = 10;
+    [JsonProperty(PropertyName = "Defense")]
     public int BaseDefense = 10;
 
     /// <summary>

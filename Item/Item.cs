@@ -62,7 +62,7 @@ public class BaseItem
 
     public virtual bool Use(GroupMessageReceiver receiver, int count)
     {
-        Player player = Player.Register(receiver);
+        var player = Player.Register(receiver);
         if (player.Bag[Id] < count)
         {
             receiver.SendAtMessage($"你的背包中【{Name}】不足{count}个！");
@@ -71,7 +71,7 @@ public class BaseItem
 
         if (Level > 0)
         {
-            if (!HavePet(receiver, out Pet? petData))
+            if (!HavePet(receiver, out var petData))
             {
                 return false;
             }
@@ -102,11 +102,10 @@ public class BaseItem
             player.Bag.TryGetValue(item.Id, out int itemCount);
 
             int countNeeded = item.Count * count;
-            if (itemCount < countNeeded)
-            {
-                receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Id].Name}]不足{countNeeded}个");
-                return false;
-            }
+            if (itemCount >= countNeeded) continue;
+
+            receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Id].Name}]不足{countNeeded}个");
+            return false;
         }
 
         foreach (var item in Formulation.Items)
@@ -156,7 +155,7 @@ public class Artifact : BaseItem
     public int Intellect = 0;
     public int Health = 0;
 
-    public static Artifact Null = new Artifact()
+    public static Artifact Null = new()
     {
         Id = -1,
         Name = "无"
@@ -170,7 +169,7 @@ public class Artifact : BaseItem
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
         if (!base.Use(receiver, 1)) return false;
-        Player player = Player.Register(receiver);
+        var player = Player.Register(receiver);
         player.Pet.Artifact = this;
         List<string> message = new()
         {
@@ -208,32 +207,31 @@ public class Resurrection : BaseItem
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
-        Pet petData = Player.Register(receiver).Pet;
-        if (petData.Health == 0)
-        {
-            int ResHealth;
-            switch (Mode)
-            {
-                case 0:
-                    ResHealth = petData.Health =
-                        ((int)(petData.MaxHealth < Health
-                            ? petData.MaxHealth
-                            : Health) * count);
-                    petData.RectOverflow();
-                    break;
-                case 1:
-                    ResHealth = petData.Health = (int)Math.Round(petData.MaxHealth * Health * count);
-                    petData.RectOverflow();
-                    break;
-                case 2:
-                    ResHealth = petData.Health = petData.MaxHealth;
-                    break;
-                default:
-                    throw new($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
-            }
+        var petData = Player.Register(receiver).Pet;
+        if (petData.Health != 0) return true;
 
-            receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{ResHealth}");
+        int ResHealth;
+        switch (Mode)
+        {
+            case 0:
+                ResHealth = petData.Health =
+                    ((int)(petData.MaxHealth < Health
+                        ? petData.MaxHealth
+                        : Health) * count);
+                petData.RectOverflow();
+                break;
+            case 1:
+                ResHealth = petData.Health = (int)Math.Round(petData.MaxHealth * Health * count);
+                petData.RectOverflow();
+                break;
+            case 2:
+                ResHealth = petData.Health = petData.MaxHealth;
+                break;
+            default:
+                throw new($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
         }
+
+        receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{ResHealth}");
 
         return true;
     }
@@ -259,7 +257,7 @@ public class Recovery : BaseItem
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
-        Pet pet = Player.Register(receiver).Pet;
+        var pet = Player.Register(receiver).Pet;
         if (pet.Health == 0)
         {
             receiver.SendAtMessage("您的宠物已死亡，请先进行复活！");
@@ -330,22 +328,22 @@ public class Gain : BaseItem
             $"成功使用[{Name}] ×{count}，触发以下效果："
         };
 
-        if (Attack != 0) message.Add($"◇攻击永久提升：{Attack}");
-        if (Defense != 0) message.Add($"◇防御永久提升：{Defense}");
-        if (Intellect != 0) message.Add($"◇智力永久提升：{Intellect}");
-        if (Health != 0) message.Add($"◇生命永久提升：{Health}");
-        if (Health != 0) message.Add($"◇精力永久提升：{MaxEnergy}");
-        if (Experience != 0) message.Add($"◇获得经验：{Experience}");
-        if (Points != 0) message.Add($"◇获得积分：{Points}");
+        if (Attack != 0) message.Add($"◇攻击永久提升：{Attack * count}");
+        if (Defense != 0) message.Add($"◇防御永久提升：{Defense * count}");
+        if (Intellect != 0) message.Add($"◇智力永久提升：{Intellect * count}");
+        if (Health != 0) message.Add($"◇生命永久提升：{Health * count}");
+        if (Health != 0) message.Add($"◇精力永久提升：{MaxEnergy * count}");
+        if (Experience != 0) message.Add($"◇获得经验：{Experience * count}");
+        if (Points != 0) message.Add($"◇获得积分：{Points * count}");
 
-        pet.BaseAttack += Attack;
-        pet.BaseDefense += Defense;
-        pet.BaseIntellect += Intellect;
-        pet.Health += Health;
-        pet.Experience += Experience;
+        pet.BaseAttack += Attack * count;
+        pet.BaseDefense += Defense * count;
+        pet.BaseIntellect += Intellect * count;
+        pet.BaseMaxHealth += Health * count;
+        pet.Experience += Experience * count;
         pet.BaseMaxEnergy += MaxEnergy;
 
-        player.Points += Points;
+        player.Points += Points * count;
 
         receiver.SendAtMessage(string.Join("\n", message));
         return true;
@@ -363,12 +361,10 @@ public class PetItem : BaseItem
     public override bool Use(GroupMessageReceiver receiver, int count)
     {
         var player = Player.Register(receiver);
-        if (player.Pet == null)
-        {
-            player.Pet = _pet;
-            return true;
-        }
+        if (player.Pet != null) return false;
 
-        return false;
+        player.Pet = _pet;
+        return true;
+
     }
 }
