@@ -13,9 +13,9 @@ namespace OpenPetsWorld
             v.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
         }
 
-        public static void SendAtMessage(this GroupMessageReceiver x, string Text)
+        public static void SendAtMessage(this GroupMessageReceiver x, string text)
         {
-            x.SendMessageAsync(new MessageChainBuilder().At(x.Sender.Id).Plain($" {Text}").Build());
+            x.SendMessageAsync(new MessageChainBuilder().At(x.Sender.Id).Plain($" {text}").Build());
         }
 
         public static void SendBmpMessage(this GroupMessageReceiver x, Image image)
@@ -25,16 +25,12 @@ namespace OpenPetsWorld
 
         public static List<T> SafeGetRange<T>(this List<T> list, int index, int count)
         {
-            int availableCount = list.Count - index;
-            int rangeCount = Math.Min(count, availableCount);
+            var availableCount = list.Count - index;
+            var rangeCount = Math.Min(count, availableCount);
 
-            if (rangeCount <= 0)
-            {
+            return rangeCount <= 0 ?
                 // 如果范围中的元素数小于等于0，则返回一个空列表
-                return new List<T>();
-            }
-
-            return list.GetRange(index, rangeCount);
+                new List<T>() : list.GetRange(index, rangeCount);
         }
 
         public static long ToUnixTime(this DateTime dateTime)

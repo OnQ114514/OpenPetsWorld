@@ -526,7 +526,8 @@ internal static class Program
                                 break;
 
                             case -3:
-                                receiver.SendAtMessage($"你的[{pet.Name}]等级不足" /*,以下为进化流程："*/);
+                                var workflow = string.Join("→", pet.Morphologies.Select((morphology, index) => $"{index}-{morphology.Level}-{morphology.Name}"));
+                                receiver.SendAtMessage($"你的[{pet.Name}]等级不足，以下为进化流程：\n" + workflow);
                                 break;
                         }
                     }

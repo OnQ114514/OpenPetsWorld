@@ -24,7 +24,7 @@ public class BaseItem
     /// </summary>
     public ItemType ItemType;
 
-    private string? _description;
+    private readonly string? _description;
 
     /// <summary>
     /// 描述
@@ -69,7 +69,7 @@ public class BaseItem
             return false;
         }
 
-        if (Level > 0)
+        if (Level > 0) 
         {
             if (!HavePet(receiver, out var petData))
             {
@@ -96,12 +96,12 @@ public class BaseItem
             return false;
         }
 
-        Player player = Player.Register(receiver);
+        var player = Player.Register(receiver);
         foreach (var item in Formulation.Items)
         {
-            player.Bag.TryGetValue(item.Id, out int itemCount);
+            player.Bag.TryGetValue(item.Id, out var itemCount);
 
-            int countNeeded = item.Count * count;
+            var countNeeded = item.Count * count;
             if (itemCount >= countNeeded) continue;
 
             receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Id].Name}]不足{countNeeded}个");
@@ -210,28 +210,28 @@ public class Resurrection : BaseItem
         var petData = Player.Register(receiver).Pet;
         if (petData.Health != 0) return true;
 
-        int ResHealth;
+        int resHealth;
         switch (Mode)
         {
             case 0:
-                ResHealth = petData.Health =
+                resHealth = petData.Health =
                     ((int)(petData.MaxHealth < Health
                         ? petData.MaxHealth
                         : Health) * count);
                 petData.RectOverflow();
                 break;
             case 1:
-                ResHealth = petData.Health = (int)Math.Round(petData.MaxHealth * Health * count);
+                resHealth = petData.Health = (int)Math.Round(petData.MaxHealth * Health * count);
                 petData.RectOverflow();
                 break;
             case 2:
-                ResHealth = petData.Health = petData.MaxHealth;
+                resHealth = petData.Health = petData.MaxHealth;
                 break;
             default:
                 throw new($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
         }
 
-        receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{ResHealth}");
+        receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{resHealth}");
 
         return true;
     }
@@ -266,22 +266,22 @@ public class Recovery : BaseItem
 
         if (pet.Health < pet.MaxHealth)
         {
-            int OriginHealth = pet.Health;
-            int ResHealth;
+            var originHealth = pet.Health;
+            int resHealth;
             switch (Mode)
             {
                 case 0:
                     pet.Health += (int)Health * count;
                     pet.RectOverflow();
-                    ResHealth = pet.Health - OriginHealth;
+                    resHealth = pet.Health - originHealth;
                     break;
                 case 1:
                     pet.Health += (int)Math.Round(pet.MaxHealth * Health) * count;
-                    ResHealth = pet.Health - OriginHealth;
+                    resHealth = pet.Health - originHealth;
                     break;
                 case 2:
                     pet.Health = pet.MaxHealth;
-                    ResHealth = pet.MaxHealth - OriginHealth;
+                    resHealth = pet.MaxHealth - originHealth;
                     count = 1;
                     break;
                 default:
@@ -289,7 +289,7 @@ public class Recovery : BaseItem
                     return false;
             }
 
-            receiver.SendAtMessage($"成功使用【{Name}】×{count}，将宠物成功复活!\n◇回复血量：{ResHealth}");
+            receiver.SendAtMessage($"成功使用【{Name}】×{count}，将宠物成功复活!\n◇回复血量：{resHealth}");
             return true;
         }
 
