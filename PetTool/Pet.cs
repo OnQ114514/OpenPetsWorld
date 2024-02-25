@@ -74,7 +74,7 @@ public class Pet
     //TODO:完善状态
     public string State = "正常";
     public string? IconName;
-    public string PettAlent = "无";
+    public string PetTalent = "无";
     
     public Artifact Artifact = Artifact.Null;
     public int Mood = 50;
@@ -178,9 +178,14 @@ public class Pet
         return PetPool[index];
     }
 
-    //TODO:支持动态公式
+    /// <summary>
+    /// 对该宠物造成伤害
+    /// </summary>
+    /// <param name="myPet"></param>
+    /// <returns></returns>
     public int Damage(Pet myPet)
     {
+        //TODO:支持动态公式
         return (myPet.Attack + myPet.Intellect * 20) *
                (1 - Defense * Intellect * 20 / (Attack + Defense + Health / 10 + Intellect * 20));
     }
@@ -234,7 +239,7 @@ public class Pet
             $"级别:{Rank}",
             $"状态:{State}",
             $"神器:{Artifact.Name}",
-            $"天赋:{PettAlent}",
+            $"天赋:{PetTalent}",
             $"战力:{Power.ToFormat()}",
             $"智力:{Intellect.ToFormat()}",
             $"攻击:{Attack.ToFormat()}",

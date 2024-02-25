@@ -22,26 +22,32 @@ namespace OpenPetsWorld
         /// 怪物入侵
         /// </summary>
         public static bool BossIntruding = false;
+
         /// <summary>
         /// 玩家数据
         /// </summary>
         public static Dictionary<string, Dictionary<string, Player>> Players = new();
+
         /// <summary>
         /// 物品
         /// </summary>
         public static Dictionary<int, BaseItem> Items = new();
+
         /// <summary>
         /// 宠物卡池
         /// </summary>
         public static List<Pet> PetPool = new();
+
         /// <summary>
         /// 副本
         /// </summary>
         public static List<Replica> Replicas = new();
+
         /// <summary>
         /// 礼包
         /// </summary>
-        public static List<Gift> Gifts = new();
+        private static List<Gift> Gifts = new();
+
         /// <summary>
         /// 宠物神榜刷新时间
         /// </summary>
@@ -57,14 +63,15 @@ namespace OpenPetsWorld
         /// </summary>
         public static Image Wallpaper = new Bitmap(650, 500);
 
-        public static int MaxIQAdd;
-        public static int MinIQAdd;
+        public static int MaxIqAdd;
+        public static int MinIqAdd;
         public static int MaxAttrAdd;
         public static int MinAttrAdd;
         public static int MaxExpAdd;
         public static int MinExpAdd;
 
         public static int MaxLevel = 300;
+
         /// <summary>
         /// 单次砸蛋所需积分
         /// </summary>
@@ -132,6 +139,9 @@ namespace OpenPetsWorld
 
         #region 读写数据文件
 
+        /// <summary>
+        /// 读取游戏数据
+        /// </summary>
         public static void ReadData()
         {
             #region 宠物背景
@@ -160,8 +170,8 @@ namespace OpenPetsWorld
                 MinAttrAdd = misc.MinAttrAdd;
                 MaxExpAdd = misc.MaxExpAdd;
                 MinExpAdd = misc.MinExpAdd;
-                MaxIQAdd = misc.MaxIQAdd;
-                MinIQAdd = misc.MinIQAdd;
+                MaxIqAdd = misc.MaxIQAdd;
+                MinIqAdd = misc.MinIQAdd;
 
                 ExtractNeededPoint = misc.ExtractNeededPoint;
             }
@@ -186,12 +196,19 @@ namespace OpenPetsWorld
             #region 玩家数据
 
             Log.Info("读取玩家数据中…");
-            const string playersDataPath = "./data/players.json";
-            var lPlayerData = TryRead<Dictionary<string, Dictionary<string, Player>>>(playersDataPath);
-            if (lPlayerData != null)
+            var dirs = Directory.GetDirectories("./data");
+            Dictionary<string, Dictionary<string, Player>> group = new();
+            foreach (var dir in dirs)
             {
-                Players = lPlayerData;
+                string playersPath = dir + "/players.json";
+                var groupName = Path.GetFileName(dir);
+                var lPlayers = TryRead<Dictionary<string, Player>>(playersPath);
+                if (lPlayers == null) continue;
+
+                group[groupName] = lPlayers;
             }
+
+            Players = group;
 
             #endregion
 
@@ -301,14 +318,18 @@ namespace OpenPetsWorld
                 DefaultValueHandling = DefaultValueHandling.Ignore
             };
 
-            string playerJson = Players.ToJsonString(setting);
-            const string path = "./data/players.json";
-            if (!Directory.Exists("./data"))
+            foreach (var group in Players)
             {
-                Directory.CreateDirectory("./data");
-            }
+                var dir = "./data/" + group.Key;
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
 
-            File.WriteAllText(path, playerJson);
+                string playerJson = group.Value.ToJsonString(setting);
+                string path = dir + "/players.json";
+                File.WriteAllText(path, playerJson);
+            }
 
             #endregion
         }

@@ -1,29 +1,86 @@
+using OpenPetsWorld.Extra;
+
 namespace OpenPetsWorld;
 
 public class Replica
 {
-    public int Level = 0;
+    /// <summary>
+    /// 所需等级
+    /// </summary>
+    public readonly int Level = 0;
+    /// <summary>
+    /// 副本名
+    /// </summary>
     public string Name;
-    public Dictionary<int, int> RewardingItems = new();
-    public int RewardingPoint = 0;
-    public int ExpAdd;
+    /// <summary>
+    /// 奖励物品
+    /// </summary>
+    private readonly Dictionary<int, int> _rewardingItems = new();
+    /// <summary>
+    /// 最大奖励积分
+    /// </summary>
+    private readonly int _maxPoint = 0;
+    /// <summary>
+    /// 最小奖励积分
+    /// </summary>
+    private readonly int _minPoint = 0;
+    /// <summary>
+    /// 最大经验
+    /// </summary>
+    private readonly int _maxExp = 0;
+    /// <summary>
+    /// 最小经验
+    /// </summary>
+    private readonly int _minExp = 2;
+    /// <summary>
+    /// 敌人名
+    /// </summary>
     public string enemyName;
+    /// <summary>
+    /// 敌人攻击
+    /// </summary>
     public int Attack;
-    public int Energy = 10;
-    public string? IconName = null;
+    /// <summary>
+    /// 消耗精力
+    /// </summary>
+    public readonly int Energy = 10;
+    /// <summary>
+    /// 敌人图片
+    /// </summary>
+    public readonly string? IconName = null;
+    /// <summary>
+    /// 消耗物品
+    /// </summary>
+    private readonly FItem? _neededItem = null;
 
-    public bool Challenge(Player player, int count)
+    public int Challenge(Player player, int count, out int expAdd, out int pointAdd)
     {
+        expAdd = 0;
+        pointAdd = 0;
+
+        if (_neededItem != null)
+        {
+            if (!player.Bag.TryGetValue(_neededItem.Id, out var value))
+            {
+                return 1;
+            }
+
+            if (value < _neededItem.Count * count)
+            {
+                return 1;
+            }
+        }
+
         if (player.Pet == null || player.Pet.Energy < count * Energy)
         {
-            return false;
+            return 2;
         }
 
         player.Pet.Health -= Attack * count;
         player.Pet.Energy -= Energy * count;
-        player.Pet.Experience += ExpAdd * count;
-        player.Points += RewardingPoint * count;
-        foreach (var item in RewardingItems)
+        player.Pet.Experience += Program.Random.Next(_minExp, _maxExp) * count;
+        player.Points += Program.Random.Next(_minPoint, _maxPoint) * count;
+        foreach (var item in _rewardingItems)
         {
             if (!player.Bag.ContainsKey(item.Key))
             {
@@ -35,6 +92,6 @@ public class Replica
             }
         }
 
-        return true;
+        return 0;
     }
 }

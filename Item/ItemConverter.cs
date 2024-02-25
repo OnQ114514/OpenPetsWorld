@@ -15,7 +15,7 @@ public class ItemConverter : JsonConverter
     public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
         var dictionary = new Dictionary<int, BaseItem>();
-        JObject jsonObject = JObject.Load(reader);
+        var jsonObject = JObject.Load(reader);
         var origin = jsonObject.ToObject<Dictionary<int, object>>();
 
         foreach (var key in origin.Keys)
