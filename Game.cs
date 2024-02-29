@@ -9,7 +9,7 @@ using File = System.IO.File;
 
 namespace OpenPetsWorld
 {
-    public static class OpenPetsWorld
+    public static class Game
     {
         public static readonly string[] SignTexts = { "奖励积分", "累签", "连签" };
         public static string[] Ranks = Array.Empty<string>();
@@ -103,7 +103,7 @@ namespace OpenPetsWorld
             return false;
         }
 
-        private static bool HavePet(string groupId, string memberId, out Pet? petData, bool send = true)
+        public static bool HavePet(string groupId, string memberId, out Pet? petData, bool send = true)
         {
             if (HavePet(groupId, memberId, send))
             {

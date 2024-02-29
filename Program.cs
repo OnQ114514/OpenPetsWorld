@@ -14,7 +14,7 @@ using System.Drawing.Imaging;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using System.Timers;
-using static OpenPetsWorld.OpenPetsWorld;
+using static OpenPetsWorld.Game;
 using Timer = System.Timers.Timer;
 
 namespace OpenPetsWorld;
@@ -137,7 +137,6 @@ internal static class Program
                 {
                     Log.Error(e.Message);
                     Trace.Flush();
-                    throw;
                 }
             });
 
@@ -313,95 +312,16 @@ internal static class Program
             }
             case "砸蛋":
             {
-                if (PetPool.Count == 0)
-                {
-                    Log.Error("宠物卡池为空！请检测数据文件");
-                    return;
-                }
-
-                var player = Player.Register(receiver);
-                if (player.Pet == null)
-                {
-                    if (player.Points < ExtractNeededPoint)
-                    {
-                        receiver.SendAtMessage($"您的积分不足,无法进行砸蛋!\n【所需[{ExtractNeededPoint}]积分】\n请发送【签到】获得积分");
-                        break;
-                    }
-
-                    player.Points -= ExtractNeededPoint;
-                    var pet = Pet.Gacha();
-
-                    player.Pet = pet;
-
-                    await receiver.SendMessageAsync(new MessageChainBuilder()
-                        .At(memberId)
-                        .Plain($" 恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋")
-                        .ImageFromBase64(ToBase64(pet.Render()))
-                        .Build());
-                }
-                else
-                {
-                    receiver.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
-                }
+                var message = Core.OpenEgg(groupId, memberId);
+                if (message != null) await receiver.SendMessageAsync(message);
 
                 break;
             }
             case "砸蛋十连":
             {
-                if (PetPool.Count == 0)
-                {
-                    Log.Error("宠物卡池为空！请检测数据文件");
-                    return;
-                }
-
-                var player = Player.Register(receiver);
-                if (player.Pet == null)
-                {
-                    var neededPoint = ExtractNeededPoint * 10;
-                    if (player.Points < neededPoint)
-                    {
-                        receiver.SendAtMessage($"您的积分不足,无法进行砸蛋!\n【所需[{neededPoint}]积分】\n请发送【签到】获得积分");
-                        break;
-                    }
-
-                    player.Points -= neededPoint;
-
-                    List<string> texts = new();
-                    List<Pet> pets = new();
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var pet = Pet.Gacha();
-                        pets.Add(pet);
-
-                        texts.Add($"[{i + 1}]{pet.Rank}-{pet.Name}");
-                    }
-
-                    player.GachaPets = pets;
-
-                    #region 绘图
-
-                    using Bitmap bitmap = new(480, 480);
-                    using var graphics = Graphics.FromImage(bitmap);
-                    using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
-
-                    graphics.Clear(Color.White);
-                    graphics.DrawString($"[@{memberId}]", font, Black, 3, 3);
-                    graphics.DrawString("◇指令：选择+数字", font, Black, 3, 440);
-
-                    var y = 40;
-                    foreach (var text in texts)
-                    {
-                        graphics.DrawString(text, font, Black, 3, y);
-                        y += 40;
-                    }
-
-                    #endregion
-
-                    receiver.SendBmpMessage(bitmap);
-                    break;
-                }
-
-                receiver.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
+                var message = Core.OpenTenEggs(groupId, memberId);
+                if (message != null) await receiver.SendMessageAsync(message);
+                
                 break;
             }
             case "修炼":
@@ -455,36 +375,8 @@ internal static class Program
             }
             case "宠物进化":
             {
-                if (HavePet(receiver, out var pet))
-                {
-                    var statusCode = pet.Evolved(out var level);
-                    switch (statusCode)
-                    {
-                        case 0:
-                            MessageChainBuilder builder = new();
-                            var path = Path.GetFullPath($"./datapack/peticon/{pet.IconName}");
-                            if (pet.IconName != null) builder.ImageFromPath(path);
-                            builder.At(memberId)
-                                .Plain($" 你的{pet.Name}成功进化至[LV·{level}级]{pet.Stage.ToStr()}·{pet.Name}]！");
-                            await receiver.SendMessageAsync(builder.Build());
-                            break;
-
-                        case -1:
-                            receiver.SendAtMessage("你的宠物暂时无法进化哦！");
-                            break;
-
-                        case -2:
-                            receiver.SendAtMessage($"你的[{pet.Name}]已达到最高进化形态！！！");
-                            break;
-
-                        case -3:
-                            var workflow = string.Join("→",
-                                pet.Morphologies.Select((morphology, index) =>
-                                    $"{index}-{morphology.Level}-{morphology.Name}"));
-                            receiver.SendAtMessage($"你的[{pet.Name}]等级不足，以下为进化流程：\n" + workflow);
-                            break;
-                    }
-                }
+                var message = Core.Evolve(groupId, memberId);
+                if (message != null) await receiver.SendMessageAsync(message);
 
                 break;
             }
@@ -1224,7 +1116,7 @@ internal static class Program
     public static string ToBase64(Image bmp)
     {
         using MemoryStream stream = new();
-        bmp.Save(stream, ImageFormat.Webp);
+        bmp.Save(stream, ImageFormat.Png);
         var array = stream.ToArray();
 
         return Convert.ToBase64String(array);

@@ -2,7 +2,7 @@ using Mirai.Net.Data.Messages.Receivers;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using System.Drawing;
-using static OpenPetsWorld.OpenPetsWorld;
+using static OpenPetsWorld.Game;
 using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld.PetTool;
@@ -140,7 +140,7 @@ public class Pet
     /// </summary>
     /// <param name="level">进化所需等级</param>
     /// <returns></returns>
-    public int Evolved(out int level)
+    public int Evolve(out int level)
     {
         level = 0;
         if (Morphologies == null)

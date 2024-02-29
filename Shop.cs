@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using System.Drawing;
-using static OpenPetsWorld.OpenPetsWorld;
+using static OpenPetsWorld.Game;
 using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld;

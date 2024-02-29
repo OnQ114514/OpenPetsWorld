@@ -1,7 +1,7 @@
 using Mirai.Net.Data.Messages.Receivers;
 using Newtonsoft.Json;
 using OpenPetsWorld.PetTool;
-using static OpenPetsWorld.OpenPetsWorld;
+using static OpenPetsWorld.Game;
 using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld;
