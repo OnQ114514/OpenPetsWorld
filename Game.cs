@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using OpenPetsWorld.PetTool;
 using System.Drawing;
+using System.Timers;
 using static OpenPetsWorld.Program;
 using File = System.IO.File;
 
@@ -115,9 +116,10 @@ namespace OpenPetsWorld
             return false;
         }
 
-        public static bool HavePet(Player playerData)
+        public static void EnergyRecovery(object? sender, ElapsedEventArgs e)
         {
-            return playerData.Pet != null;
+            foreach (var player in Players.Values.SelectMany(group => group.Values))
+                player.EnergyAdd();
         }
 
         public static Gift? FindGift(string giftName)

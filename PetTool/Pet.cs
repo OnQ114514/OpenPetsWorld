@@ -179,14 +179,15 @@ public class Pet
     }
 
     /// <summary>
-    /// 对该宠物造成伤害
+    /// 对该宠物造成伤害的公式
     /// </summary>
-    /// <param name="myPet"></param>
+    /// <param name="attack"></param>
+    /// <param name="intellect"></param>
     /// <returns></returns>
-    public int Damage(Pet myPet)
+    public int Damage(int attack, int intellect = 0)
     {
         //TODO:支持动态公式
-        return (myPet.Attack + myPet.Intellect * 20) *
+        return (attack + intellect * 20) *
                (1 - Defense * Intellect * 20 / (Attack + Defense + Health / 10 + Intellect * 20));
     }
 

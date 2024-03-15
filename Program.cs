@@ -7,13 +7,10 @@ using Mirai.Net.Sessions.Http.Managers;
 using Mirai.Net.Utils.Scaffolds;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
-using OpenPetsWorld.PetTool;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Reactive.Linq;
-using System.Runtime.InteropServices;
-using System.Timers;
 using static OpenPetsWorld.Game;
 using Timer = System.Timers.Timer;
 
@@ -21,8 +18,6 @@ namespace OpenPetsWorld;
 
 internal static class Program
 {
-    private static readonly ControlCtrlDelegate cancelHandler = HandlerRoutine;
-
     public static readonly Font YaHei = new("微软雅黑", 20, FontStyle.Regular);
     public static readonly Brush Black = Brushes.Black;
     private static string? _address;
@@ -82,7 +77,7 @@ internal static class Program
             "\r\n  ___                       _____        _         _    _               _      _ \r\n / _ \\                     | ___ \\      | |       | |  | |             | |    | |\r\n/ / \\ \\ _ __    ___  _ __  | |_/ |  ___ | |_  ___ | |  | |  ___   _ __ | |  __| |\r\n| | | || '_ \\  / _ \\| '_ \\ |  ___/ / _ \\| __|/ __|| |/\\| | / _ \\ |  __|| | / _  |\r\n\\ \\_/ /| |_) | | __/| | | || |     | __/| |_ \\__ \\\\  /\\  /| (_) || |   | | |(_| |\r\n \\___/ | .__/  \\___||_| |_||_|     \\___| \\__||___/ \\/  \\/  \\___/ |_|   |_| \\____|\r\n       | |                                                                       \r\n       |_|                                                                       ");
 
         MiraiBot bot;
-        Start:
+        Beginning:
         try
         {
             bot = new()
@@ -97,20 +92,24 @@ internal static class Program
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
-            Console.Write("是否重新输入连接地址、QQ号、密钥配置？(留空则否)(Y/N):");
+            Console.Write("是否重新输入连接地址、QQ号、密钥配置？(留空则否，R为重试)(Y/N/R):");
             var selection = Console.ReadLine();
             if (selection == "Y")
             {
                 Initialize();
                 WriteConfig();
-                goto Start;
+                goto Beginning;
+            }
+            else if (selection == "R")
+            {
+                goto Beginning;
             }
 
             return;
         }
 
         #endregion Start
-
+        
         Log.Info("已连接至Mirai");
         //写入配置文件
         if (!File.Exists(configPath)) WriteConfig();
@@ -122,7 +121,7 @@ internal static class Program
             Enabled = true,
             AutoReset = true
         };
-        timer.Elapsed += NewEnergyRecovery;
+        timer.Elapsed += EnergyRecovery;
 
         bot.MessageReceived
             .OfType<GroupMessageReceiver>()
@@ -139,8 +138,6 @@ internal static class Program
                     Trace.Flush();
                 }
             });
-
-        SetConsoleCtrlHandler(cancelHandler, true);
 
         for (;;)
         {
@@ -313,14 +310,14 @@ internal static class Program
             case "砸蛋":
             {
                 var message = Core.OpenEgg(groupId, memberId);
-                if (message != null) await receiver.SendMessageAsync(message);
+                if ((object?)message != null) await receiver.SendMessageAsync(message);
 
                 break;
             }
             case "砸蛋十连":
             {
                 var message = Core.OpenTenEggs(groupId, memberId);
-                if (message != null) await receiver.SendMessageAsync(message);
+                if ((object?)message != null) await receiver.SendMessageAsync(message);
                 
                 break;
             }
@@ -376,7 +373,7 @@ internal static class Program
             case "宠物进化":
             {
                 var message = Core.Evolve(groupId, memberId);
-                if (message != null) await receiver.SendMessageAsync(message);
+                if ((object?)message != null) await receiver.SendMessageAsync(message);
 
                 break;
             }
@@ -499,10 +496,10 @@ internal static class Program
                 using Font font = new("Microsoft YaHei", 23, FontStyle.Bold);
                 graphics.Clear(Color.White);
                 graphics.DrawString($"[@{memberId}]您的财富信息如下：", font, Black, 2, 2);
-                graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 55), new Point(480, 55));
+                graphics.DrawLine(new Pen(Color.Black, 3), new(0, 55), new(480, 55));
                 graphics.DrawString($"●积分：{player.Points}", font, Black, 0, 65);
                 graphics.DrawString($"●点券：{player.Bonds}", font, Black, 0, 125);
-                graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 180), new Point(480, 180));
+                graphics.DrawLine(new Pen(Color.Black, 3), new(0, 180), new(480, 180));
                 receiver.SendBmpMessage(bitmap);
                 break;
             }
@@ -583,86 +580,8 @@ internal static class Program
                     var levelsToUpgrade = 1;
                     if (strMess.Length > 4) _ = int.TryParse(strMess[4..], out levelsToUpgrade);
 
-                    if (!HavePet(receiver, out var pet)) break;
-
-                    var originalPower = pet.Power;
-                    var currentLevel = pet.Level;
-                    var allExp = 0;
-                    var allHealth = 0;
-                    var allAttribute = 0;
-                    var addedLevel = 0;
-                    var nextExpNeeded = 0;
-
-                    for (var i = 0; i < levelsToUpgrade; i++)
-                    {
-                        if (currentLevel == MaxLevel)
-                        {
-                            receiver.SendAtMessage("你的宠物等级已达最高等级！");
-                            return;
-                        }
-
-                        var expNeeded = nextExpNeeded = GetLevelUpExp(currentLevel);
-                        var tempExp = allExp + expNeeded;
-
-                        if (allExp > pet.Experience) break;
-
-                        allHealth += 2 * Pow(currentLevel, 2) + 4 * currentLevel + 10;
-                        allAttribute += 3 * currentLevel + 1;
-
-                        currentLevel++;
-                        addedLevel++;
-
-                        allExp = tempExp;
-                    }
-
-                    if (addedLevel == 0)
-                    {
-                        receiver.SendAtMessage(
-                            $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!");
-                        return;
-                    }
-
-                    pet.Level = currentLevel;
-                    pet.MaxExperience = nextExpNeeded;
-                    pet.Experience -= allExp;
-                    pet.BaseMaxHealth += allHealth;
-                    pet.BaseAttack += allAttribute;
-                    pet.BaseDefense += allAttribute;
-
-                    receiver.SendAtMessage($"您的[{pet.Name}]成功升级啦!\n"
-                                           + "------------------\n"
-                                           + $"● 等级提升：+{addedLevel}\n"
-                                           + $"● 经验减少：-{allExp}\n"
-                                           + $"● 生命提升：+{allHealth}\n"
-                                           + $"● 攻击提升：+{allAttribute}\n"
-                                           + $"● 防御提升：+{allAttribute}\n"
-                                           + $"● 战力提升：+{pet.Power - originalPower}\n"
-                                           + "------------------");
-
-                    /*int originalMaxExp = pet.MaxExperience;
-                    if (pet.Experience >= originalMaxExp)
-                    {
-                        int originalPower = pet.Power;
-                        pet.Experience -= originalMaxExp;
-                        pet.Level++;
-                        int n = pet.Level;// + count;
-                        int maxExp = 5 * Pow(n, 3) + 15 * Pow(n, 2) + 40 * n + 100;
-                        pet.MaxExperience = maxExp;
-                        int maxHealthAdd = 2 * Pow(n, 2) + 4 * n + 10;
-                        pet.MaxHealth += maxHealthAdd;
-                        int attAndDefAdd = 3 * n + 1;
-                        pet.Attack += attAndDefAdd;
-                        pet.Defense += attAndDefAdd;
-                        x.SendAtMessage($"您的[{pet.Name}]成功升级啦!\n-" + "-----------------\n" + "● 等级提升：+1\n" +
-                                        $"● 经验减少：-{originalMaxExp}\n" + $"● 生命提升：+{maxHealthAdd}\n" +
-                                        $"● 攻击提升：+{attAndDefAdd}\n" + $"● 防御提升：+{attAndDefAdd}\n" +
-                                        $"● 战力提升：+{pet.Power - originalPower}\n" + "------------------");
-                    }
-                    else
-                    {
-                        x.SendAtMessage(
-                            $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!");
-                    }*/
+                    var message = Core.LevelUp(groupId, memberId, levelsToUpgrade);
+                    if ((object?)message != null) await receiver.SendMessageAsync(message);
                 }
                 else if (strMess.StartsWith("购买"))
                 {
@@ -905,7 +824,7 @@ internal static class Program
                     List<string> message = new();
                     foreach (var item in gift.Items)
                     {
-                        message.Add($"{Items[item.Id].Name}*{item.Count}");
+                        message.Add($"{Items[item.Id].Name}*{item.Count}"); 
                         player.Bag.MergeValue(item.Id, item.Count);
                     }
 
@@ -928,7 +847,7 @@ internal static class Program
                     graphics.DrawString("当前开放副本如下：", font, Brushes.Black, 5, 5);
                     graphics.DrawLine(pen, 0, 60, 480, 60);
                     graphics.DrawLine(pen, 0, 498, 235, 498);
-                    var n = 55;
+                    var n = 60;
                     foreach (var text in replicasString.SafeGetRange(index, 10))
                         graphics.DrawString(text, font, Brushes.Black, 0, n);
 
@@ -978,7 +897,7 @@ internal static class Program
                         break;
                     }
 
-                    var attack = tPlayer.Pet.Damage(player.Pet);
+                    var attack = tPlayer.Pet.Damage(player.Pet.Attack, player.Pet.Intellect);
                     tPlayer.Pet.Health -= attack;
                     await receiver.SendMessageAsync(
                         $"【{player.Pet.Name} VS {tPlayer.Pet.Name}】\n" +
@@ -997,7 +916,7 @@ internal static class Program
         }
     }
 
-    private static int GetLevelUpExp(int level)
+    public static int GetLevelUpExp(int level)
     {
         return 5 * Pow(level, 3) + 15 * Pow(level, 2) + 40 * level + 100;
     }
@@ -1013,11 +932,7 @@ internal static class Program
         return Random.Next(0, 2) == 1;
     }
 
-    private static void NewEnergyRecovery(object? sender, ElapsedEventArgs e)
-    {
-        foreach (var player in Players.Values.SelectMany(group => group.Values))
-            player.EnergyAdd();
-    }
+    
 
     private static void WriteConfig()
     {
@@ -1122,7 +1037,7 @@ internal static class Program
         return Convert.ToBase64String(array);
     }
 
-    private static int Pow(int x, int y)
+    public static int Pow(int x, int y)
     {
         return (int)Math.Pow(x, y);
     }
@@ -1137,25 +1052,6 @@ internal static class Program
         Console.Write("验证密钥：");
         _verifyKey = Console.ReadLine();
     }
-
-    #region 关闭保存
-
-    private delegate bool ControlCtrlDelegate(int CtrlType);
-
-    [DllImport("kernel32.dll")]
-    private static extern bool SetConsoleCtrlHandler(ControlCtrlDelegate HandlerRoutine, bool Add);
-
-
-    private static bool HandlerRoutine(int ctrlType)
-    {
-        WriteConfig();
-        SaveData();
-        Debug.Flush();
-        Environment.Exit(0);
-        return false;
-    }
-
-    #endregion 关闭保存
 
     #region 发送消息
 

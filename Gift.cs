@@ -7,5 +7,5 @@ public class Gift
     public int Id;
     public string Name;
     public int Level;
-    public List<FItem> Items = new();
+    public readonly List<FItem> Items = new();
 }

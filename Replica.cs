@@ -71,14 +71,15 @@ public class Replica
             }
         }
 
-        if (player.Pet == null || player.Pet.Energy < count * Energy)
+        var pet = player.Pet;
+        if (pet == null || pet.Energy < count * Energy)
         {
             return 2;
         }
 
-        player.Pet.Health -= Attack * count;
-        player.Pet.Energy -= Energy * count;
-        player.Pet.Experience += Program.Random.Next(_minExp, _maxExp) * count;
+        pet.Health -= pet.Damage(Attack) * count;
+        pet.Energy -= Energy * count;
+        pet.Experience += Program.Random.Next(_minExp, _maxExp) * count;
         player.Points += Program.Random.Next(_minPoint, _maxPoint) * count;
         foreach (var item in _rewardingItems)
         {
