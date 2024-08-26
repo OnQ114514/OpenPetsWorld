@@ -1,9 +1,9 @@
-using Mirai.Net.Data.Messages.Receivers;
 using Newtonsoft.Json;
 using OpenPetsWorld.Extra;
 using OpenPetsWorld.PetTool;
+using Sora.EventArgs.SoraEvent;
+using YukariToolBox.LightLog;
 using static OpenPetsWorld.Game;
-using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld.Item;
 
@@ -60,25 +60,30 @@ public class BaseItem
     /// </summary>
     public bool CanTrade = true;
 
-    public virtual bool Use(GroupMessageReceiver receiver, int count)
+    public virtual bool Use(GroupMessageEventArgs eventArgs, int count)
     {
-        var player = Player.Register(receiver);
+        if (count == 0)
+        {
+            eventArgs.SendAtMessage($"你的背包中没有【{Name}】");
+        }
+        
+        var player = Player.Register(eventArgs);
         if (player.Bag[Id] < count)
         {
-            receiver.SendAtMessage($"你的背包中【{Name}】不足{count}个！");
+            eventArgs.SendAtMessage($"你的背包中【{Name}】不足{count}个！");
             return false;
         }
 
         if (Level > 0) 
         {
-            if (!HavePet(receiver, out var petData))
+            if (!HavePet(eventArgs, out var petData))
             {
                 return false;
             }
 
             if (petData.Level < Level)
             {
-                receiver.SendAtMessage($"该道具最低使用等级[{Level}]！");
+                eventArgs.SendAtMessage($"该道具最低使用等级[{Level}]！");
                 return false;
             }
         }
@@ -88,7 +93,7 @@ public class BaseItem
         return true;
     }
 
-    public bool Make(GroupMessageReceiver receiver, int count)
+    public bool Make(GroupMessageEventArgs receiver, int count)
     {
         if (Formulation == null)
         {
@@ -119,7 +124,7 @@ public class BaseItem
 
     public static FItem operator *(BaseItem item, int count)
     {
-        return new FItem()
+        return new FItem
         {
             Id = item.Id,
             Count = count
@@ -137,7 +142,7 @@ public class Material : BaseItem
         ItemType = ItemType.Material;
     }
 
-    public override bool Use(GroupMessageReceiver receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, int count)
     {
         receiver.SendAtMessage("该道具不能直接使用，请更换道具！");
         return false;
@@ -166,7 +171,7 @@ public class Artifact : BaseItem
         ItemType = ItemType.Artifact;
     }
 
-    public override bool Use(GroupMessageReceiver receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, int count)
     {
         if (!base.Use(receiver, 1)) return false;
         var player = Player.Register(receiver);
@@ -204,18 +209,18 @@ public class Resurrection : BaseItem
         ItemType = ItemType.Resurrection;
     }
 
-    public override bool Use(GroupMessageReceiver receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
         var petData = Player.Register(receiver).Pet;
         if (petData.Health != 0) return true;
 
-        int resHealth;
+        long resHealth;
         switch (Mode)
         {
             case 0:
                 resHealth = petData.Health =
-                    ((int)(petData.MaxHealth < Health
+                    ((long)(petData.MaxHealth < Health
                         ? petData.MaxHealth
                         : Health) * count);
                 petData.RectOverflow();
@@ -228,7 +233,7 @@ public class Resurrection : BaseItem
                 resHealth = petData.Health = petData.MaxHealth;
                 break;
             default:
-                throw new($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
+                throw new Exception($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
         }
 
         receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{resHealth}");
@@ -254,7 +259,7 @@ public class Recovery : BaseItem
         ItemType = ItemType.Recovery;
     }
 
-    public override bool Use(GroupMessageReceiver receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
         var pet = Player.Register(receiver).Pet;
@@ -267,16 +272,16 @@ public class Recovery : BaseItem
         if (pet.Health < pet.MaxHealth)
         {
             var originHealth = pet.Health;
-            int resHealth;
+            long resHealth;
             switch (Mode)
             {
                 case 0:
-                    pet.Health += (int)Health * count;
+                    pet.Health += (long)Health * count;
                     pet.RectOverflow();
                     resHealth = pet.Health - originHealth;
                     break;
                 case 1:
-                    pet.Health += (int)Math.Round(pet.MaxHealth * Health) * count;
+                    pet.Health += (long)Math.Round(pet.MaxHealth * Health) * count;
                     resHealth = pet.Health - originHealth;
                     break;
                 case 2:
@@ -285,7 +290,7 @@ public class Recovery : BaseItem
                     count = 1;
                     break;
                 default:
-                    Log.Error($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
+                    Log.Error("ItemUse", $"恢复模式异常，模式为{Mode}，物品Id为{Id}");
                     return false;
             }
 
@@ -303,30 +308,27 @@ public class Recovery : BaseItem
 /// </summary>
 public class Gain : BaseItem
 {
-    public int Attack = 0;
-    public int Defense = 0;
-    public int Intellect = 0;
-    public int Health = 0;
-    public int Points = 0;
-    public int Experience = 0;
-    public int MaxEnergy = 0;
+    public long Attack = 0;
+    public long Defense = 0;
+    public long Intellect = 0;
+    public long Health = 0;
+    public long Points = 0;
+    public long Experience = 0;
+    public long MaxEnergy = 0;
 
     public Gain()
     {
         ItemType = ItemType.Gain;
     }
 
-    public override bool Use(GroupMessageReceiver receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
 
         var player = Player.Register(receiver);
         var pet = player.Pet;
 
-        List<string> message = new()
-        {
-            $"成功使用[{Name}] ×{count}，触发以下效果："
-        };
+        List<string> message = [$"成功使用[{Name}] ×{count}，触发以下效果："];
 
         if (Attack != 0) message.Add($"◇攻击永久提升：{Attack * count}");
         if (Defense != 0) message.Add($"◇防御永久提升：{Defense * count}");
@@ -358,7 +360,7 @@ public class PetItem : BaseItem
 {
     private Pet _pet;
 
-    public override bool Use(GroupMessageReceiver receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, int count)
     {
         var player = Player.Register(receiver);
         if (player.Pet != null) return false;

@@ -1,7 +1,8 @@
-﻿using Mirai.Net.Data.Messages;
-using Mirai.Net.Data.Messages.Receivers;
-using Mirai.Net.Utils.Scaffolds;
-using System.Drawing;
+﻿using System.Drawing;
+using System.Drawing.Imaging;
+using System.Drawing.Text;
+using Sora.Entities;
+using Sora.EventArgs.SoraEvent;
 using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld
@@ -10,17 +11,17 @@ namespace OpenPetsWorld
     {
         public static void ClearText(this Graphics v)
         {
-            v.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+            v.TextRenderingHint = TextRenderingHint.AntiAlias;
         }
 
-        public static void SendAtMessage(this GroupMessageReceiver x, string text)
+        public static void SendAtMessage(this GroupMessageEventArgs x, string text)
         {
-            x.SendMessageAsync(new MessageChainBuilder().At(x.Sender.Id).Plain($" {text}").Build());
+            x.Reply(new MessageBodyBuilder().At(x.Sender.Id).Plain($" {text}").Build());
         }
 
-        public static void SendBmpMessage(this GroupMessageReceiver x, Image image)
+        public static void SendBmpMessage(this GroupMessageEventArgs x, Image image)
         {
-            x.SendMessageAsync(new MessageChainBuilder().ImageFromBase64(ToBase64(image)).Build());
+            x.Reply(new MessageBodyBuilder().Image(image).Build());
         }
 
         public static List<T> SafeGetRange<T>(this List<T> list, int index, int count)
@@ -28,9 +29,11 @@ namespace OpenPetsWorld
             var availableCount = list.Count - index;
             var rangeCount = Math.Min(count, availableCount);
 
-            return rangeCount <= 0 ?
+            return rangeCount <= 0
+                ?
                 // 如果范围中的元素数小于等于0，则返回一个空列表
-                new List<T>() : list.GetRange(index, rangeCount);
+                new List<T>()
+                : list.GetRange(index, rangeCount);
         }
 
         public static long ToUnixTime(this DateTime dateTime)
@@ -53,7 +56,7 @@ namespace OpenPetsWorld
             return day;
         }*/
 
-        public static string ToFormat(this int v)
+        public static string ToFormat(this long v)
         {
             const int hundredMillion = 100000000;
             const int tenThousand = 10000;
@@ -64,25 +67,22 @@ namespace OpenPetsWorld
             {
                 origin /= hundredMillion;
                 return Math.Round(origin, 1, MidpointRounding.ToZero) + "E";
-                //return (origin / hundredMillion).ToString(format) + "E";
             }
-            else if (v >= tenThousand)
+
+            if (v >= tenThousand)
             {
                 origin /= tenThousand;
                 return Math.Round(origin, 1, MidpointRounding.ToZero) + "W";
-                //return (origin / tenThousand).ToString(format) + "W";
             }
-            else
-            {
-                return v.ToString();
-            }
+
+            return v.ToString();
         }
 
         public static string ToSignedString(this int value)
         {
             if (value > 0)
             {
-                return "+" + value.ToString();
+                return "+" + value;
             }
 
             return value.ToString();
@@ -95,84 +95,71 @@ namespace OpenPetsWorld
                 return -1;
             }
 
-            string value = v[v.Length..];
+            var value = v[v.Length..];
             if (value.Contains(symbol))
             {
                 if (int.TryParse(v[(v.Length + symbol.Length)..], out int count))
                 {
                     return count;
                 }
-                else
-                {
-                    return 0;
-                }
+
+                return 0;
             }
 
             return -1;
         }
 
-        public static void ParseString(MessageChain chain, int skipCount, out string name, out int count, out string? target)
+        //TODO:使用更好的跳过策略而不是硬编码skipCount
+        public static void ParseString(MessageContext message, int skipCount, out string name, out int count,
+            out string? target)
         {
-            string plainMessage = chain.GetPlainMessage()[skipCount..];
+            var text = message.GetText()[skipCount..];
             name = string.Empty;
             count = 1;
             target = null;
 
-            int countIndex = plainMessage.IndexOf('*');
-            int targetIndex = plainMessage.IndexOf('-');
+            var countIndex = text.IndexOf('*');
+            var targetIndex = text.IndexOf('-');
 
             // 提取名称
-            if (countIndex != -1)
-            {
-                name = plainMessage[..countIndex];
-            }
-            else if (targetIndex != -1)
-            {
-                name = plainMessage[..targetIndex];
-            }
-            else
-            {
-                name = plainMessage;
-            }
+            name = countIndex != -1 ? text[..countIndex] : targetIndex != -1 ? text[..targetIndex] : text;
 
             // 提取数量
             if (countIndex != -1)
             {
-                try
+                var countText = text[(countIndex + 1)..(targetIndex != -1 ? targetIndex : text.Length)];
+                if (countText.Trim().Equals("all", StringComparison.OrdinalIgnoreCase))
                 {
-                    var countText = plainMessage[(countIndex + 1)..(targetIndex != -1 ? targetIndex : plainMessage.Length)];
-                    int.TryParse(countText, out count);
+                    count = -1;
                 }
-                catch
+                else if (!int.TryParse(countText, out count))
                 {
-                    // ignored
+                    count = 1; // 默认值
                 }
             }
 
             // 提取目标
             if (targetIndex != -1)
             {
-                try
+                var targetText = text[(targetIndex + 1)..].Trim();
+                if (long.TryParse(targetText, out var targetNumber))
                 {
-                    var targetText = plainMessage[(targetIndex + 1)..];
-                    if (long.TryParse(targetText, out long targetNumber))
-                    {
-                        target = targetNumber.ToString();
-                    }
-                    else
-                    {
-                        var number = GetAtNumber(chain);
-                        if (number != null)
-                        {
-                            target = number;
-                        }
-                    }
+                    target = targetNumber.ToString();
                 }
-                catch
+                else
                 {
-                    // ignored
+                    target = GetAtNumber(message.MessageBody) ?? null;
                 }
             }
+        }
+
+        public static string ToBase64(Image bmp)
+        {
+            using MemoryStream stream = new();
+            bmp.Save(stream, ImageFormat.Png);
+            var array = stream.ToArray();
+
+            return Convert.ToBase64String(array);
         }
     }
 }

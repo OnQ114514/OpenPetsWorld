@@ -1,6 +1,6 @@
-using Mirai.Net.Data.Messages.Receivers;
 using Newtonsoft.Json;
 using OpenPetsWorld.PetTool;
+using Sora.EventArgs.SoraEvent;
 using static OpenPetsWorld.Game;
 using static OpenPetsWorld.Program;
 
@@ -11,12 +11,12 @@ public class Player
     /// <summary>
     /// 积分
     /// </summary>
-    public int Points;
+    public long Points;
 
     /// <summary>
     /// 点券
     /// </summary>
-    public int Bonds = 0;
+    public long Bonds = 0;
 
     /// <summary>
     /// 累签
@@ -46,13 +46,12 @@ public class Player
     /// <summary>
     /// 已领取的礼包ID
     /// </summary>
-    public List<int> ClaimedGifts = new();
+    public readonly List<int> ClaimedGifts = new();
 
     /// <summary>
     /// 上次活动时间
     /// </summary>
-    [JsonIgnore]
-    public long LastActivityUnixTime;
+    [JsonIgnore] private long _lastActivityUnixTime;
 
     /// <summary>
     /// 砸蛋十连抽到的宠物
@@ -66,9 +65,9 @@ public class Player
     [JsonIgnore]
     public long SentFreeUnixTime;
 
-    public static Player Register(GroupMessageReceiver x)
+    public static Player Register(GroupMessageEventArgs x)
     {
-        return Register(x.GroupId, x.Sender.Id);
+        return Register(x.SourceGroup.Id.ToString(), x.Sender.Id.ToString());
     }
 
     public static Player Register(string groupId, string memberId)
@@ -98,10 +97,10 @@ public class Player
         return true;
     }
 
-    public bool Activity(GroupMessageReceiver receiver, int energy)
+    public bool Activity(GroupMessageEventArgs eventArgs, int energy)
     {
-        if (!CanActivity(receiver)) return false;
-        LastActivityUnixTime = GetNowUnixTime();
+        if (!CanActivity(eventArgs)) return false;
+        _lastActivityUnixTime = GetNowUnixTime();
         if (Pet.Energy < energy)
         {
             //receiver.SendAtMessage("");
@@ -112,28 +111,28 @@ public class Player
         return true;
     }
 
-    public bool CanActivity(GroupMessageReceiver receiver)
+    public bool CanActivity(GroupMessageEventArgs receiver)
     {
-        return CanActivity(receiver.GroupId, receiver.Sender.Id);
+        return CanActivity(receiver.SourceGroup.Id.ToString(), receiver.Sender.Id.ToString());
     }
 
     private bool CanActivity(string groupId, string memberId)
     {
-        if (GetNowUnixTime() - LastActivityUnixTime > BreaksTime || (LastActivityUnixTime == 0))
+        if (GetNowUnixTime() - _lastActivityUnixTime > BreaksTime || (_lastActivityUnixTime == 0))
         {
             return HavePet(groupId, memberId);
         }
 
         SendAtMessage(groupId, memberId,
-            $"时间还没到，距您下一次活动还差[{120 - GetNowUnixTime() + LastActivityUnixTime}]秒!");
+            $"时间还没到，距您下一次活动还差[{120 - GetNowUnixTime() + _lastActivityUnixTime}]秒!");
         return false;
     }
 
-    public void EnergyAdd()
+    public void EnergyAdd(int energy = 10)
     {
         if (Pet != null && Pet.Energy < Pet.MaxEnergy)
         {
-            Pet.Energy++;
+            Pet.Energy += energy;
         }
     }
 }

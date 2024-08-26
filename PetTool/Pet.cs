@@ -1,7 +1,7 @@
-using Mirai.Net.Data.Messages.Receivers;
+using System.Drawing;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
-using System.Drawing;
+using Sora.EventArgs.SoraEvent;
 using static OpenPetsWorld.Game;
 using static OpenPetsWorld.Program;
 
@@ -9,38 +9,38 @@ namespace OpenPetsWorld.PetTool;
 
 public class Pet
 {
-    public int Energy = 100;
-    public int Health;
-    public int Experience;
+    public long Energy = 100;
+    public long Health;
+    public long Experience;
     public int Level = 1;
     public string Name;
-    public int MaxExperience = 160;
+    public long MaxExperience = 160;
 
     [JsonIgnore]
-    public int MaxEnergy => BaseMaxEnergy + Artifact.Energy;
+    public long MaxEnergy => BaseMaxEnergy + Artifact.Energy;
 
     [JsonIgnore]
-    public int MaxHealth => BaseMaxHealth + Artifact.Health;
+    public long MaxHealth => BaseMaxHealth + Artifact.Health;
 
     [JsonIgnore]
-    public int Intellect => BaseIntellect + Artifact.Intellect;
+    public long Intellect => BaseIntellect + Artifact.Intellect;
 
     [JsonIgnore]
-    public int Attack => BaseAttack + Artifact.Attack;
+    public long Attack => BaseAttack + Artifact.Attack;
 
     [JsonIgnore]
-    public int Defense => BaseDefense + Artifact.Defense;
+    public long Defense => BaseDefense + Artifact.Defense;
 
     [JsonProperty(PropertyName = "MaxEnergy")]
-    public int BaseMaxEnergy = 100;
+    public long BaseMaxEnergy = 100;
     [JsonProperty(PropertyName = "MaxHealth")]
-    public int BaseMaxHealth;
-    [JsonProperty(PropertyName = "Intellect")]
-    public int BaseIntellect = 4;
+    public long BaseMaxHealth;
+    [JsonProperty(PropertyName = "longellect")]
+    public long BaseIntellect = 4;
     [JsonProperty(PropertyName = "Attack")]
-    public int BaseAttack = 10;
+    public long BaseAttack = 10;
     [JsonProperty(PropertyName = "Defense")]
-    public int BaseDefense = 10;
+    public long BaseDefense = 10;
 
     /// <summary>
     /// 性别
@@ -108,9 +108,9 @@ public class Pet
     }
 
     [JsonIgnore]
-    public int Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
+    public long Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
 
-    public string GetMoodSymbol()
+    private string GetMoodSymbol()
     {
         var star = string.Empty;
         int starNumber = (int)Math.Round((double)Mood / 10);
@@ -174,8 +174,8 @@ public class Pet
 
     public static Pet Gacha()
     {
-        var index = Program.Random.Next(0, PetPool.Count);
-        return PetPool[index];
+        var index = Program.Random.Next(0, Banner.Count);
+        return Banner[index];
     }
 
     /// <summary>
@@ -184,14 +184,14 @@ public class Pet
     /// <param name="attack"></param>
     /// <param name="intellect"></param>
     /// <returns></returns>
-    public int Damage(int attack, int intellect = 0)
+    public long Damage(long attack, long intellect = 0)
     {
         //TODO:支持动态公式
         return (attack + intellect * 20) *
                (1 - Defense * Intellect * 20 / (Attack + Defense + Health / 10 + Intellect * 20));
     }
 
-    public bool RemoveArtifact(GroupMessageReceiver receiver)
+    public bool RemoveArtifact(GroupMessageEventArgs receiver)
     {
         if (Artifact.Id == -1)
         {

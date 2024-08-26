@@ -2,7 +2,10 @@ using OpenPetsWorld.Extra;
 
 namespace OpenPetsWorld;
 
-public class Replica
+/// <summary>
+/// 副本类
+/// </summary>
+public class Instance
 {
     /// <summary>
     /// 所需等级

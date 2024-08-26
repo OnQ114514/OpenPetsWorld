@@ -1,10 +1,11 @@
-﻿using Manganese.Text;
-using Mirai.Net.Data.Messages.Receivers;
+﻿using System.Drawing;
+using System.Timers;
+using Manganese.Text;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using OpenPetsWorld.PetTool;
-using System.Drawing;
-using System.Timers;
+using Sora.EventArgs.SoraEvent;
+using YukariToolBox.LightLog;
 using static OpenPetsWorld.Program;
 using File = System.IO.File;
 
@@ -12,10 +13,9 @@ namespace OpenPetsWorld
 {
     public static class Game
     {
-        public static readonly string[] SignTexts = { "奖励积分", "累签", "连签" };
-        public static string[] Ranks = Array.Empty<string>();
-        public static string[] Attributes = Array.Empty<string>();
-        public static string[] UnitingPlace = Array.Empty<string>();
+        public static string[] Ranks = [];
+        public static string[] Attributes = [];
+        public static string[] UnitingPlace = [];
 
         public static int BreaksTime = 120;
 
@@ -37,12 +37,12 @@ namespace OpenPetsWorld
         /// <summary>
         /// 宠物卡池
         /// </summary>
-        public static List<Pet> PetPool = new();
+        public static List<Pet> Banner = new();
 
         /// <summary>
         /// 副本
         /// </summary>
-        public static List<Replica> Replicas = new();
+        public static List<Instance> Instances = new();
 
         /// <summary>
         /// 礼包
@@ -78,14 +78,14 @@ namespace OpenPetsWorld
         /// </summary>
         public static int ExtractNeededPoint = 500;
 
-        public static bool HavePet(GroupMessageReceiver x, bool send = true)
+        public static bool HavePet(GroupMessageEventArgs x, bool send = true)
         {
-            return HavePet(x.GroupId, x.Sender.Id, send);
+            return HavePet(x.SourceGroup.Id.ToString(), x.Sender.Id.ToString(), send);
         }
 
-        public static bool HavePet(GroupMessageReceiver x, out Pet? petData, bool send = true)
+        public static bool HavePet(GroupMessageEventArgs x, out Pet pet, bool send = true)
         {
-            return HavePet(x.GroupId, x.Sender.Id, out petData, send);
+            return HavePet(x.SourceGroup.Id.ToString(), x.Sender.Id.ToString(), out pet, send);
         }
 
         public static bool HavePet(string groupId, string memberId, bool send = true)
@@ -104,15 +104,15 @@ namespace OpenPetsWorld
             return false;
         }
 
-        public static bool HavePet(string groupId, string memberId, out Pet? petData, bool send = true)
+        public static bool HavePet(string groupId, string memberId, out Pet? pet, bool send = true)
         {
             if (HavePet(groupId, memberId, send))
             {
-                petData = Player.Register(groupId, memberId).Pet;
+                pet = Player.Register(groupId, memberId).Pet;
                 return true;
             }
 
-            petData = null;
+            pet = null;
             return false;
         }
 
@@ -134,9 +134,9 @@ namespace OpenPetsWorld
             return items.Count != 0 ? items[0] : null;
         }
 
-        public static Replica? FindReplica(string replicaName)
+        public static Instance? FindReplica(string replicaName)
         {
-            return (from lReplica in Replicas where lReplica.Name == replicaName select lReplica).FirstOrDefault();
+            return (from lReplica in Instances where lReplica.Name == replicaName select lReplica).FirstOrDefault();
         }
 
         #region 读写数据文件
@@ -158,9 +158,9 @@ namespace OpenPetsWorld
 
             #region 杂项
 
-            Log.Info("读取杂项数据中…");
-            const string MiscPath = "./datapack/misc.json";
-            Misc misc = TryRead<Misc>(MiscPath);
+            Log.Info("Reading", "读取杂项数据中…");
+            const string miscPath = "./datapack/misc.json";
+            var misc = TryRead<Misc>(miscPath);
             if (misc != null)
             {
                 Ranks = misc.Ranks;
@@ -182,14 +182,14 @@ namespace OpenPetsWorld
 
             #region 物品数据
 
-            Log.Info("读取物品数据中…");
-            const string itemsDataPath = "./datapack/items.json";
-            if (File.Exists(itemsDataPath))
+            Log.Info("Reading", "读取物品数据中…");
+            const string itemsPath = "./datapack/items.json";
+            if (File.Exists(itemsPath))
             {
-                var LItemsData = ItemReader.Read(itemsDataPath);
-                if (LItemsData != null)
+                var localItems = ItemReader.Read(itemsPath);
+                if (localItems != null)
                 {
-                    Items = LItemsData;
+                    Items = localItems;
                 }
             }
 
@@ -197,17 +197,17 @@ namespace OpenPetsWorld
 
             #region 玩家数据
 
-            Log.Info("读取玩家数据中…");
+            Log.Info("Reading", "读取玩家数据中…");
             var dirs = Directory.GetDirectories("./data");
             Dictionary<string, Dictionary<string, Player>> group = new();
             foreach (var dir in dirs)
             {
-                string playersPath = dir + "/players.json";
+                var playersPath = dir + "/players.json";
                 var groupName = Path.GetFileName(dir);
-                var lPlayers = TryRead<Dictionary<string, Player>>(playersPath);
-                if (lPlayers == null) continue;
+                var localPlayers = TryRead<Dictionary<string, Player>>(playersPath);
+                if (localPlayers == null) continue;
 
-                group[groupName] = lPlayers;
+                group[groupName] = localPlayers;
             }
 
             Players = group;
@@ -216,26 +216,26 @@ namespace OpenPetsWorld
 
             #region 宠物池
 
-            Log.Info("读取宠物池数据中…");
+            Log.Info("Reading", "读取宠物池数据中…");
             const string petPoolPath = "./datapack/PetPool.json";
-            var lPetPool = TryRead<List<Pet>>(petPoolPath);
-            if (lPetPool != null)
+            var localBanner = TryRead<List<Pet>>(petPoolPath);
+            if (localBanner != null)
             {
-                PetPool = lPetPool;
+                Banner = localBanner;
             }
 
             #endregion
 
             #region 副本数据
 
-            Log.Info("读取副本数据中…");
+            Log.Info("Reading", "读取副本数据中…");
             const string replicaPath = "./datapack/replicas.json";
             if (File.Exists(replicaPath))
             {
-                var lReplicaData = TryRead<List<Replica>>(replicaPath);
-                if (lReplicaData != null)
+                var localInstance = TryRead<List<Instance>>(replicaPath);
+                if (localInstance != null)
                 {
-                    Replicas = lReplicaData;
+                    Instances = localInstance;
                 }
             }
 
@@ -243,14 +243,14 @@ namespace OpenPetsWorld
 
             #region 商品数据
 
-            Log.Info("读取商品数据中…");
+            Log.Info("Reading", "读取商品数据中…");
             const string pointShopPath = "./datapack/pointshop.json";
             if (File.Exists(pointShopPath))
             {
-                var lCommData = TryRead<Shop>(pointShopPath);
-                if (lCommData != null)
+                var localComm = TryRead<Shop>(pointShopPath);
+                if (localComm != null)
                 {
-                    PointShop = lCommData;
+                    PointShop = localComm;
                 }
             }
 
@@ -258,21 +258,21 @@ namespace OpenPetsWorld
 
             #region 礼包数据
 
-            Log.Info("读取礼包数据中…");
+            Log.Info("Reading", "读取礼包数据中…");
             const string giftsPath = "./datapack/gifts.json";
             if (File.Exists(giftsPath))
             {
-                var lGifts = TryRead<List<Gift>>(giftsPath);
-                if (lGifts != null)
+                var localGifts = TryRead<List<Gift>>(giftsPath);
+                if (localGifts != null)
                 {
-                    Gifts = lGifts;
+                    Gifts = localGifts;
                 }
             }
 
             #endregion
         }
 
-        public static T? TryRead<T>(string dataPath) where T : class
+        private static T? TryRead<T>(string dataPath) where T : class
         {
             if (!File.Exists(dataPath)) return null;
 
@@ -293,22 +293,17 @@ namespace OpenPetsWorld
 
         private static void ErrorDispose(string path)
         {
-            while (true)
-            {
-                Console.Write("检测到读取数据文件时发生错误，是否删除数据文件？(Y/N):");
+            Console.Write("检测到读取数据文件时发生错误，是否删除数据文件？(y/N):");
 
-                var input = Console.ReadLine();
-                switch (input)
-                {
-                    case "N":
-                        KeysExit();
-                        break;
-                    case "Y":
-                        File.Delete(path);
-                        KeysExit();
-                        break;
-                }
+            var input = Console.ReadLine();
+            if (input == "Y")
+            {
+                File.Delete(path);
+                KeysExit();
+                return;
             }
+
+            KeysExit();
         }
 
         public static void SaveData()

@@ -1,9 +1,7 @@
-namespace OpenPetsWorld.Item;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
+
+namespace OpenPetsWorld.Item;
 
 public class ItemConverter : JsonConverter
 {
