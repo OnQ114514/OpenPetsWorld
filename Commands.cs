@@ -345,7 +345,7 @@ public static class Commands
     /// <summary>
     /// 合成
     /// </summary>
-    public static void Synthesized(GroupMessageEventArgs eventArgs)
+    public static void Make(GroupMessageEventArgs eventArgs)
     {
         var senderId = eventArgs.Sender.Id.ToString();
         var context = eventArgs.Message;

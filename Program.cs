@@ -615,7 +615,7 @@ internal static class Program
                 }
                 else if (textMessage.StartsWith("合成"))
                 {
-                    Commands.Synthesized(eventArgs);
+                    Commands.Make(eventArgs);
                 }
                 else if (textMessage.StartsWith("领取"))
                 {
@@ -722,8 +722,38 @@ internal static class Program
                 {
                     Commands.Attack(eventArgs);
                 }
+                else if (textMessage.StartsWith("宠物侦察"))
+                {
+                    if (!HavePet(eventArgs, out var pet)) return;
 
-                break;
+                    const int energy = 5;
+                    var target = GetAtNumber(context.MessageBody);
+                    if (target == null) return;
+                    
+
+                    if (pet.Energy < energy)
+                    {
+                        //TODO:支持自定义
+                        eventArgs.SendAtMessage($"你的宠物已经精疲力竭了，侦察宠物需要消化{energy}点精力！当前精力剩余{pet.Energy}");
+                        return;
+                    }
+                    
+                    var targetPlayer = Player.Register(groupId, target);
+                    if (targetPlayer.Pet == null)
+                    {
+                        eventArgs.SendAtMessage("对方还未拥有宠物，无法进行侦查宠物！");
+                        return;
+                    }
+
+                    pet.Energy -= energy; 
+                    await eventArgs.Reply(new MessageBodyBuilder()
+                        .At(senderId)
+                        .Plain($" 侦察成功，精力-{energy}，您侦察的宠物信息如下：")
+                        .Image(targetPlayer.Pet.Render())
+                        .Build());
+                }
+
+                return;
         }
     }
 
@@ -939,73 +969,58 @@ internal static class Program
     }
     
     private static void Initialize()
+{
+    #region 设置连接类型
+    Console.Write("使用反向Websocket(Y/n):");
+    var reverseReslut = Console.ReadLine();
+    var reverse = true;
+    if (!reverseReslut.IsNullOrEmpty() && reverseReslut.ToLower() == "n")
     {
-        #region 设置连接类型
-
-        Console.Write("使用反向Websocket(Y/n):");
-        var reverseReslut = Console.ReadLine();
-        var reverse = true;
-        if (reverseReslut == "n")
+        reverse = false;
+        _config.ReverseWebsocket = true;
+        Console.Write("连接地址(不含端口):");
+        var host = Console.ReadLine();
+        if (!string.IsNullOrEmpty(host))
         {
-            reverse = false;
-            _config.ReverseWebsocket = true;
-
-            Console.Write("连接地址(不含端口):");
-            var host = Console.ReadLine();
-
-            if (host != null)
-            {
-                _config.Host = host;
-            }
+            _config.Host = host;
         }
-
-        #endregion
-
-        #region 设置端口
-
-        while (true)
-        {
-            Console.Write("连接端口(留空则8080):");
-            var portText = Console.ReadLine();
-
-            if (portText == null) break;
-            
-            // 尝试解析端口号
-            if (ushort.TryParse(portText, out var port))
-            {
-                _config.Port = port;
-                break;
-            }
-
-            Console.WriteLine("请输入有效的端口号！");
-        }
-
-        #endregion
-
-        #region 设置是否公开至局域网
-
-        if (!reverse) return;
-
-        Console.Write("是否公开至局域网(y/N):");
-        var lanPublic = Console.ReadLine();
-        if (lanPublic == "y")
-        {
-            _config.LanPublic = true;
-        }
-
-        #endregion
     }
+    #endregion
+    #region 设置端口
+    while (true)
+    {
+        Console.Write("连接端口(留空则8080):");
+        var portText = Console.ReadLine();
+        if (string.IsNullOrEmpty(portText)) break;
+        // 尝试解析端口号
+        if (ushort.TryParse(portText, out var port))
+        {
+            _config.Port = port;
+            break;
+        }
+        Console.WriteLine("请输入有效的端口号！");
+    }
+    #endregion
+    #region 设置是否公开至局域网
+    if (!reverse) return;
+    Console.Write("是否公开至局域网(y/N):");
+    var lanPublic = Console.ReadLine();
+    if (!lanPublic.IsNullOrEmpty() && lanPublic.ToLower() == "y")
+    {
+        _config.LanPublic = true;
+    }
+    #endregion
+}
 
     private static string? GetLocalIpAddress()
     {
         var ipEntry = Dns.GetHostEntry(Dns.GetHostName());
         foreach (var ip in ipEntry.AddressList)
         {
-            if (ip.AddressFamily == AddressFamily.InterNetwork)
-            {
-                var ipText = ip.ToString();
-                if (ipText.StartsWith("192.168.")) return ipText;
-            }
+            if (ip.AddressFamily != AddressFamily.InterNetwork) continue;
+            
+            var ipText = ip.ToString();
+            if (ipText.StartsWith("192.168.")) return ipText;
         }
 
         return null;
