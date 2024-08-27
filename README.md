@@ -19,7 +19,7 @@
 <table>
 <tr>
   <td><a href="https://github.com/Hoshinonyaruko/Gensokyo">Gensokyo</a></td>
-  <td>基于QQ开放平台Api开发的符合 OneBot 协议端实现</td>
+  <td>基于 QQ开放平台 的 OneBot 协议端实现</td>
 </tr>
 <tr>
   <td><a href="https://github.com/NapNeko/NapCatQQ">NapcatQQ</a></td>
