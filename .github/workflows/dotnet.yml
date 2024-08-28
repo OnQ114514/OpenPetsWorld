@@ -39,11 +39,20 @@ jobs:
       - name: Publish Windows version
         run: dotnet publish --configuration Release --runtime win-x64 --output ./output/windows
 
-      - name: Upload Artifact
+      - name: Upload Linux x64 Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: dotnet-artifact
-          path: |
-            ./output/linux/x64
-            ./output/linux/arm64
-            ./output/windows
+          name: Linux-x64
+          path: ./output/linux/x64
+
+      - name: Upload Linux arm64 Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Linux-arm64
+          path: ./output/linux/arm64
+
+      - name: Upload Windows x64 Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Windows-x64
+          path: ./output/windows
