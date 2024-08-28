@@ -10,7 +10,7 @@ namespace OpenPetsWorld;
 
 public static class Commands
 {
-    public static MessageBody? Gacha(string group, string sender)
+    public static MessageBody? Gacha(long group, long sender)
     {
         if (Banner.Count == 0)
         {
@@ -32,7 +32,7 @@ public static class Commands
         {
             return builder
                 .At(sender)
-                .Plain($"您的积分不足,无法进行砸蛋!\n【所需[{PlayConfig.GachaPoint}]积分】\n请发送【签到】获得积分")
+                .Plain($" 您的积分不足,无法进行砸蛋！\n【所需[{PlayConfig.GachaPoint}]积分】\n请发送【签到】获得积分")
                 .Build();
         }
 
@@ -48,7 +48,7 @@ public static class Commands
             .Build();
     }
 
-    public static MessageBody? GachaTen(string group, string member)
+    public static MessageBody? GachaTen(long groupId, long senderId)
     {
         if (Banner.Count == 0)
         {
@@ -56,21 +56,23 @@ public static class Commands
             return null;
         }
 
-        var player = Player.Register(group, member);
+        var player = Player.Register(groupId, senderId);
 
         MessageBodyBuilder builder = new();
-        if (player.Pet != null) return builder.At(member).Plain("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生").Build();
+        if (player.Pet != null) return builder.At(senderId).Plain("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生").Build();
 
         var neededPoint = PlayConfig.GachaPoint * 10;
         if (player.Points < neededPoint)
         {
-            return builder.At(member).Plain($"您的积分不足,无法进行砸蛋!\n【所需[{neededPoint}]积分】\n请发送【签到】获得积分").Build();
+            return builder
+                .At(senderId)
+                .Plain($" 您的积分不足,无法进行砸蛋!\n【所需[{neededPoint}]积分】\n请发送【签到】获得积分").Build();
         }
 
         player.Points -= neededPoint;
 
-        List<string> texts = new();
-        List<Pet> pets = new();
+        List<string> texts = [];
+        List<Pet> pets = [];
         for (var i = 0; i < 10; i++)
         {
             var pet = Pet.Gacha();
@@ -88,7 +90,7 @@ public static class Commands
         using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
 
         graphics.Clear(Color.White);
-        graphics.DrawString($"[@{member}]", font, Black, 3, 3);
+        graphics.DrawString($"[@{senderId}]", font, Black, 3, 3);
         graphics.DrawString("◇指令：选择+数字", font, Black, 3, 440);
 
         var y = 40;
@@ -103,9 +105,9 @@ public static class Commands
         return builder.Image(bitmap).Build();
     }
 
-    public static MessageBody? Evolve(string group, string member)
+    public static MessageBody? Evolve(long groupId, long senderId)
     {
-        if (!HavePet(group, member, out var pet)) return null;
+        if (!HavePet(groupId, senderId, out var pet)) return null;
 
         var statusCode = pet.Evolve(out var level);
         string text;
@@ -136,12 +138,12 @@ public static class Commands
                 throw new Exception();
         }
 
-        return builder.At(member).Plain(text).Build();
+        return builder.At(senderId).Plain(text).Build();
     }
 
-    public static MessageBody? LevelUp(string group, string member, int levelsToUpgrade = 1)
+    public static MessageBody? LevelUp(long groupId, long senderId, int levelsToUpgrade = 1)
     {
-        if (!HavePet(group, member, out var pet)) return null;
+        if (!HavePet(groupId, senderId, out var pet)) return null;
 
         string text;
 
@@ -200,7 +202,7 @@ public static class Commands
                + "------------------";
 
         Send:
-        return new MessageBodyBuilder().At(member).Plain(text).Build();
+        return new MessageBodyBuilder().At(senderId).Plain(text).Build();
     }
 
     public static void UseItem(GroupMessageEventArgs eventArgs)
@@ -208,10 +210,8 @@ public static class Commands
         var context = eventArgs.Message;
         Tools.ParseString(context, 2, out var itemName, out var count, out var target);
         if (!IsCompliant(eventArgs, count)) return;
-
-        var item = FindItem(itemName);
-
-        if (item == null)
+        
+        if (!Items.TryGetValue(itemName, out var item))
         {
             eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
             return;
@@ -227,12 +227,11 @@ public static class Commands
     public static void Trade(GroupMessageEventArgs eventArgs)
     {
         var context = eventArgs.Message;
-        Tools.ParseString(context, 2, out var itemName, out var count, out var target);
+        Tools.ParseString(context, 2, out var itemName, out var count, out var targetId);
 
         if (!IsCompliant(eventArgs, count)) return;
-
-        var item = FindItem(itemName);
-        if (item == null)
+        
+        if (!Items.TryGetValue(itemName, out var item))
         {
             eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
             return;
@@ -245,9 +244,9 @@ public static class Commands
         }
 
         var player = Player.Register(eventArgs);
-        var group = eventArgs.SourceGroup.Id.ToString();
-
-        if (string.IsNullOrEmpty(target) || !Players[group].TryGetValue(target, out var targetPlayer))
+        var group = eventArgs.SourceGroup.Id;
+        
+        if (targetId == null || !Players[group].TryGetValue(targetId.Value, out var targetPlayer))
         {
             eventArgs.SendAtMessage("目标玩家不存在！");
             return;
@@ -277,7 +276,7 @@ public static class Commands
     public static void Attack(GroupMessageEventArgs eventArgs)
     {
         var context = eventArgs.Message;
-        var groupId = eventArgs.SourceGroup.Id.ToString();
+        var groupId = eventArgs.SourceGroup.Id;
         
         var target = GetAtNumber(context.MessageBody);
         if (target == null)
@@ -287,7 +286,7 @@ public static class Commands
         }
 
         var player = Player.Register(eventArgs);
-        var tPlayer = Player.Register(groupId, target);
+        var tPlayer = Player.Register(groupId, target.Value);
         if (!HavePet(eventArgs)) return;
 
         if (tPlayer.Pet == null)
@@ -318,9 +317,8 @@ public static class Commands
         Tools.ParseString(context, 2, out var itemName, out var count, out _);
 
         if (!IsCompliant(eventArgs, count)) return;
-        var item = FindItem(itemName);
 
-        if (item == null)
+        if (!Items.TryGetValue(itemName, out var item))
         {
             eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
             return;
@@ -359,24 +357,55 @@ public static class Commands
 
         Tools.ParseString(context, 2, out var itemName, out var count, out _);
         if (!IsCompliant(eventArgs, count)) return;
-
-        var item = FindItem(itemName);
-        if (item == null)
+        
+        if (!Items.TryGetValue(itemName, out var item))
         {
             eventArgs.SendAtMessage("此物品不存在，或者输入错误！");
             return;
         }
 
-        if (item.Make(eventArgs, count))
+        if (!item.Make(eventArgs, count)) return;
+        
+        var path = $"./itemicon/{item.DescriptionImageName}.png";
+        var icon = Image.FromFile(path); 
+        eventArgs.Reply(new MessageBodyBuilder()
+            .Image(icon)
+            .At(senderId)
+            .Plain($" 合成成功了！恭喜你获得了道具·{itemName}*{count}")
+            .Build());
+    }
+
+    public static void Sell(GroupMessageEventArgs eventArgs)
+    {
+        var context = eventArgs.Message;
+        var textMessage = context.GetText();
+        
+        if (textMessage.Length < 3)
         {
-            var path = $"./itemicon/{item.DescriptionImageName}.png";
-            var icon = Image.FromFile(path); 
-            eventArgs.Reply(new MessageBodyBuilder()
-                .Image(icon)
-                .At(senderId)
-                .Plain($" 合成成功了！恭喜你获得了道具·{itemName}*{count}")
-                .Build());
+            eventArgs.SendAtMessage("◇指令:出售+道具*数量");
+            return;
         }
+
+        Tools.ParseString(context, 2, out var itemName, out var count, out _);
+
+        var item = Items[itemName];
+        if (item.Price == null)
+        {
+            eventArgs.SendAtMessage("此物品不能出售！");
+            return;
+        }
+
+        var player = Player.Register(eventArgs);
+        if (player.Bag[itemName] < count)
+        {
+            eventArgs.SendAtMessage($"你背包中的【{itemName}】不足×{count}个!");
+            return;
+        }
+
+        var points = item.Price.Value * count;
+        player.Bag[itemName] -= count;
+        player.Points += points;
+        eventArgs.SendAtMessage($"成功出售【{itemName}×{count}】,成功卖出了【{points}】积分!");
     }
     
     /// <summary>

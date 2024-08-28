@@ -67,14 +67,14 @@ public class Player
 
     public static Player Register(GroupMessageEventArgs x)
     {
-        return Register(x.SourceGroup.Id.ToString(), x.Sender.Id.ToString());
+        return Register(x.SourceGroup.Id, x.Sender.Id);
     }
 
-    public static Player Register(string groupId, string senderId)
+    public static Player Register(long groupId, long senderId)
     {
         if (!Players.TryGetValue(groupId, out var group))
         {
-            group = new Dictionary<string, Player>();
+            group = new Dictionary<long, Player>();
             Players[groupId] = group;
         }
 
@@ -110,17 +110,17 @@ public class Player
 
     private bool CanActivity(GroupMessageEventArgs eventArgs)
     {
-        return CanActivity(eventArgs.SourceGroup.Id.ToString(), eventArgs.Sender.Id.ToString());
+        return CanActivity(eventArgs.SourceGroup.Id, eventArgs.Sender.Id);
     }
 
-    private bool CanActivity(string groupId, string memberId)
+    private bool CanActivity(long groupId, long senderId)
     {
         if (GetNowUnixTime() - _lastActivityUnixTime > PlayConfig.BreaksTime || (_lastActivityUnixTime == 0))
         {
-            return HavePet(groupId, memberId);
+            return HavePet(groupId, senderId);
         }
 
-        SendAtMessage(groupId, memberId,
+        SendAtMessage(groupId, senderId,
             $"时间还没到，距您下一次活动还差[{120 - GetNowUnixTime() + _lastActivityUnixTime}]秒!");
         return false;
     }

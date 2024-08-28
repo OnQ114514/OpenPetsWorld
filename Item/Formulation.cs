@@ -6,11 +6,12 @@ namespace OpenPetsWorld.Item;
 public class Formulation
 {
     public int Level = 0;
-    public int Experience = 0;
-    public int Points = 0;
-    public int Bonds = 0;
+    public long Experience = 0;
+    public long Points = 0;
+    public long Bonds = 0;
 
-    public List<FItem> Items = new();
+    public double Probability;
+    public List<FItem> Items = [];
 }
 
 public class FItem

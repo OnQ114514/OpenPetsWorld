@@ -56,13 +56,18 @@ public class BaseItem
     /// </summary>
     public bool CanTrade = true;
 
+    /// <summary>
+    /// 出售价格
+    /// </summary>
+    public long? Price = null;
+
     public virtual bool Use(GroupMessageEventArgs eventArgs, int count)
     {
         if (count == 0)
         {
             eventArgs.SendAtMessage($"你的背包中没有【{Name}】");
         }
-        
+
         var player = Player.Register(eventArgs);
         if (player.Bag[Name] < count)
         {
@@ -70,7 +75,7 @@ public class BaseItem
             return false;
         }
 
-        if (Level > 0) 
+        if (Level > 0)
         {
             if (!HavePet(eventArgs, out var petData))
             {
@@ -150,11 +155,11 @@ public class Material : BaseItem
 /// </summary>
 public class Artifact : BaseItem
 {
-    public int Attack = 0;
-    public int Defense = 0;
-    public int Energy = 0;
-    public int Intellect = 0;
-    public int Health = 0;
+    public long Attack = 0;
+    public long Defense = 0;
+    public long Energy = 0;
+    public long Intellect = 0;
+    public long Health = 0;
 
     public static Artifact Null = new()
     {
@@ -171,12 +176,12 @@ public class Artifact : BaseItem
         if (!base.Use(receiver, 1)) return false;
         var player = Player.Register(receiver);
         player.Pet.Artifact = this;
-        List<string> message = new()
-        {
+        List<string> message =
+        [
             $"您的[{player.Pet.Name}]戴着神器真是威风凌凌呢!",
             $"● 神器名称：{Name}",
             $"● 佩戴等级：LV·{Level}"
-        };
+        ];
         if (Health != 0) message.Add($"● 生命提升{Health.ToSignedString()}");
         if (Attack != 0) message.Add($"● 攻击提升{Attack.ToSignedString()}");
         if (Defense != 0) message.Add($"● 防御提升{Defense.ToSignedString()}");
@@ -345,7 +350,6 @@ public class Gain : BaseItem
 
         receiver.SendAtMessage(string.Join("\n", message));
         return true;
-
     }
 }
 
@@ -363,6 +367,9 @@ public class PetItem : BaseItem
 
         player.Pet = _pet;
         return true;
-
     }
+}
+
+public class Clear : BaseItem
+{
 }

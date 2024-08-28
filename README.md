@@ -44,7 +44,7 @@
 
 [actions]: https://img.shields.io/github/actions/workflow/status/OnQ114514/OpenPetsWorld/dotnet.yml?style=for-the-badge
 
-[actions-link]: https://github.com/OnQ114514/OpenPetsWorld/actions/workflows/build-apk.yml
+[actions-link]: https://github.com/OnQ114514/OpenPetsWorld/actions/workflows/dotnet.yml
 
 [releases]: https://img.shields.io/github/v/release/OnQ114514/OpenPetsWorld?style=for-the-badge
 

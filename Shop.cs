@@ -35,8 +35,8 @@ public class Shop
         using Font font = new("微软雅黑", 22);
         using Pen pen = new(Color.Black, 3);
         graphics.Clear(Color.White);
-        graphics.DrawString("宠物商店", font, Black, 10, 5);
-        graphics.DrawLine(pen, 130, 22, 480, 22);
+        graphics.DrawString("宠物商店", font, Black, 10, 3);
+        graphics.DrawLine(pen, 135, 22, 480, 22);
         graphics.DrawLine(pen, 0, 465, 275, 465);
         graphics.DrawString($"页数：{count}/{_pagesCount}", font, Black, 280, 445);
         graphics.DrawString($"◇指令：{Name}+页数", font, Black, 5, 480);

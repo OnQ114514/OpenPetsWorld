@@ -20,7 +20,7 @@ namespace OpenPetsWorld
         /// <summary>
         /// 玩家数据
         /// </summary>
-        public static Dictionary<string, Dictionary<string, Player>> Players = new();
+        public static Dictionary<long, Dictionary<long, Player>> Players = new();
 
         /// <summary>
         /// 物品
@@ -61,17 +61,17 @@ namespace OpenPetsWorld
 
         public static bool HavePet(GroupMessageEventArgs x, bool send = true)
         {
-            return HavePet(x.SourceGroup.Id.ToString(), x.Sender.Id.ToString(), send);
+            return HavePet(x.SourceGroup.Id, x.Sender.Id, send);
         }
 
         public static bool HavePet(GroupMessageEventArgs x, out Pet pet, bool send = true)
         {
-            return HavePet(x.SourceGroup.Id.ToString(), x.Sender.Id.ToString(), out pet, send);
+            return HavePet(x.SourceGroup.Id, x.Sender.Id, out pet, send);
         }
 
-        public static bool HavePet(string groupId, string memberId, bool send = true)
+        public static bool HavePet(long groupId, long senderId, bool send = true)
         {
-            var playerData = Player.Register(groupId, memberId);
+            var playerData = Player.Register(groupId, senderId);
             if (playerData.Pet != null)
             {
                 return true;
@@ -79,13 +79,13 @@ namespace OpenPetsWorld
 
             if (send)
             {
-                SendAtMessage(groupId, memberId, "您当前还没有宠物,赶紧邂逅您的宠物!\n◇指令:砸蛋");
+                SendAtMessage(groupId, senderId, "您当前还没有宠物,赶紧邂逅您的宠物!\n◇指令:砸蛋");
             }
 
             return false;
         }
 
-        public static bool HavePet(string groupId, string memberId, out Pet? pet, bool send = true)
+        public static bool HavePet(long groupId, long memberId, out Pet? pet, bool send = true)
         {
             if (HavePet(groupId, memberId, send))
             {
@@ -109,12 +109,6 @@ namespace OpenPetsWorld
             return gifts.Count != 0 ? gifts[0] : null;
         }
 
-        public static BaseItem? FindItem(string itemName)
-        {
-            var items = Items.Values.Where(item => item.Name == itemName).ToList();
-            return items.Count != 0 ? items[0] : null;
-        }
-
         public static Instance? FindReplica(string replicaName)
         {
             return (from lReplica in Instances where lReplica.Name == replicaName select lReplica).FirstOrDefault();
@@ -134,13 +128,18 @@ namespace OpenPetsWorld
             {
                 Wallpaper = Image.FromFile(wallpaperPath);
             }
+            else
+            {
+                using var graphics = Graphics.FromImage(Wallpaper);
+                graphics.Clear(Color.White);
+            }
 
             #endregion
 
-            #region 杂项
+            #region 游戏配置
 
-            Log.Info("Reading", "读取杂项数据中…");
-            const string miscPath = "./datapack/misc.json";
+            Log.Info("Reading", "读取游戏配置数据中…");
+            const string miscPath = "./datapack/game.json";
             var config = TryRead<GameConfig>(miscPath);
             if (config != null)
             {
@@ -161,22 +160,38 @@ namespace OpenPetsWorld
                     Items = localItems;
                 }
             }
+            else
+            {
+                Log.Warning("Reading", "OpenPetsWorld 总是需要一个数据包，您可以参照文档进行创建，或下载现有数据包，或从宠物世界转换！");
+            }
 
             #endregion
 
             #region 玩家数据
 
+            const string playerPath = "./data";
             Log.Info("Reading", "读取玩家数据中…");
-            var dirs = Directory.GetDirectories("./data");
-            Dictionary<string, Dictionary<string, Player>> group = new();
+
+            if (!Directory.Exists(playerPath))
+            {
+                Directory.CreateDirectory(playerPath);
+                goto Banner;
+            }
+
+            var dirs = Directory.GetDirectories(playerPath);
+            var group = new Dictionary<long, Dictionary<long, Player>>();
+            
             foreach (var dir in dirs)
             {
                 var playersPath = dir + "/players.json";
-                var groupName = Path.GetFileName(dir);
-                var localPlayers = TryRead<Dictionary<string, Player>>(playersPath);
+                
+                var groupIdText = Path.GetFileName(dir);
+                if (long.TryParse(groupIdText, out var groupId)) continue;
+                
+                var localPlayers = TryRead<Dictionary<long, Player>>(playersPath);
                 if (localPlayers == null) continue;
 
-                group[groupName] = localPlayers;
+                group[groupId] = localPlayers;
             }
 
             Players = group;
@@ -185,9 +200,10 @@ namespace OpenPetsWorld
 
             #region 宠物池
 
+            Banner:
             Log.Info("Reading", "读取宠物池数据中…");
-            const string petPoolPath = "./datapack/PetPool.json";
-            var localBanner = TryRead<List<Pet>>(petPoolPath);
+            const string bannerPath = "./datapack/banner.json";
+            var localBanner = TryRead<List<Pet>>(bannerPath);
             if (localBanner != null)
             {
                 Banner = localBanner;
