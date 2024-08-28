@@ -80,33 +80,6 @@ public class Pet
     public int Mood = 50;
     public List<Morphology>? Morphologies;
 
-    public Pet()
-    {
-        //示例宠物
-        IconName = "kiana.jpg";
-        BaseMaxHealth = Program.Random.Next(100, 301);
-        Health = MaxHealth;
-        Name = "test";
-
-        #region 性别随机
-
-        _gender = RandomBool();
-
-        #endregion
-
-        #region 级别随机
-
-        Rank = Ranks[Program.Random.Next(0, 4)];
-
-        #endregion
-
-        #region 属性随机
-
-        Attribute = Attributes[Program.Random.Next(0, 5)];
-
-        #endregion
-    }
-
     [JsonIgnore]
     public long Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
 
@@ -193,13 +166,13 @@ public class Pet
 
     public bool RemoveArtifact(GroupMessageEventArgs receiver)
     {
-        if (Artifact.Id == -1)
+        if (Artifact.Name == Item.Artifact.Null.Name)
         {
             return false;
         }
 
         var player = Player.Register(receiver);
-        player.Bag.MergeValue(Artifact.Id, 1);
+        player.Bag.MergeValue(Artifact.Name, 1);
         Artifact = Artifact.Null;
 
         return true;
@@ -217,21 +190,21 @@ public class Pet
         }
 
         string[] abTexts =
-        {
+        [
             $"心情:{GetMoodSymbol()}",
             $"精力:{Energy.ToFormat()}/{MaxEnergy.ToFormat()}",
             $"血量:{Health.ToFormat()}/{MaxHealth.ToFormat()}",
             $"经验:{Experience.ToFormat()}/{MaxExperience.ToFormat()}"
-        };
+        ];
         int n = 390;
-        foreach (string abText in abTexts)
+        foreach (var abText in abTexts)
         {
             graphics.DrawString(abText, YaHei, Black, 15, n);
             n += 25;
         }
 
         string[] abTexts2 =
-        {
+        [
             $"等级:{Level}",
             $"昵称:{Name}",
             $"性别:{Gender}",
@@ -245,7 +218,7 @@ public class Pet
             $"智力:{Intellect.ToFormat()}",
             $"攻击:{Attack.ToFormat()}",
             $"防御:{Defense.ToFormat()}"
-        };
+        ];
 
         int n2 = 20;
         foreach (var abText in abTexts2)

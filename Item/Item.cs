@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using OpenPetsWorld.Extra;
 using OpenPetsWorld.PetTool;
 using Sora.EventArgs.SoraEvent;
 using YukariToolBox.LightLog;
@@ -12,8 +11,6 @@ namespace OpenPetsWorld.Item;
 /// </summary>
 public class BaseItem
 {
-    public int Id;
-
     /// <summary>
     /// 名称
     /// </summary>
@@ -30,9 +27,8 @@ public class BaseItem
     /// 描述
     /// </summary>
     [JsonIgnore]
-    public string? Description
+    public string Description
     {
-        init => _description = value;
         get
         {
             var text = _description ?? "无该物品描述";
@@ -68,7 +64,7 @@ public class BaseItem
         }
         
         var player = Player.Register(eventArgs);
-        if (player.Bag[Id] < count)
+        if (player.Bag[Name] < count)
         {
             eventArgs.SendAtMessage($"你的背包中【{Name}】不足{count}个！");
             return false;
@@ -88,7 +84,7 @@ public class BaseItem
             }
         }
 
-        player.Bag[Id] -= count;
+        player.Bag[Name] -= count;
 
         return true;
     }
@@ -104,21 +100,21 @@ public class BaseItem
         var player = Player.Register(receiver);
         foreach (var item in Formulation.Items)
         {
-            player.Bag.TryGetValue(item.Id, out var itemCount);
+            player.Bag.TryGetValue(item.Name, out var itemCount);
 
             var countNeeded = item.Count * count;
             if (itemCount >= countNeeded) continue;
 
-            receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Id].Name}]不足{countNeeded}个");
+            receiver.SendAtMessage($"你的背包中如下道具：\n[{Items[item.Name].Name}]不足{countNeeded}个");
             return false;
         }
 
         foreach (var item in Formulation.Items)
         {
-            player.Bag[item.Id] -= item.Count * count;
+            player.Bag[item.Name] -= item.Count * count;
         }
 
-        player.Bag.MergeValue(Id, count);
+        player.Bag.MergeValue(Name, count);
         return true;
     }
 
@@ -126,7 +122,7 @@ public class BaseItem
     {
         return new FItem
         {
-            Id = item.Id,
+            Name = item.Name,
             Count = count
         };
     }
@@ -162,7 +158,6 @@ public class Artifact : BaseItem
 
     public static Artifact Null = new()
     {
-        Id = -1,
         Name = "无"
     };
 
@@ -233,7 +228,8 @@ public class Resurrection : BaseItem
                 resHealth = petData.Health = petData.MaxHealth;
                 break;
             default:
-                throw new Exception($"恢复模式异常，模式为{Mode}，物品Id为{Id}");
+                Log.Error("ItemUse", $"恢复模式异常，模式为{Mode}，物品名为{Name}");
+                return false;
         }
 
         receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{resHealth}");
@@ -290,7 +286,7 @@ public class Recovery : BaseItem
                     count = 1;
                     break;
                 default:
-                    Log.Error("ItemUse", $"恢复模式异常，模式为{Mode}，物品Id为{Id}");
+                    Log.Error("ItemUse", $"恢复模式异常，模式为{Mode}，物品名为{Name}");
                     return false;
             }
 

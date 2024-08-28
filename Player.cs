@@ -36,7 +36,7 @@ public class Player
     /// <summary>
     /// 背包
     /// </summary>
-    public readonly Dictionary<int, int> Bag = new();
+    public readonly Dictionary<string, int> Bag = new();
 
     /// <summary>
     /// 宠物
@@ -70,30 +70,31 @@ public class Player
         return Register(x.SourceGroup.Id.ToString(), x.Sender.Id.ToString());
     }
 
-    public static Player Register(string groupId, string memberId)
+    public static Player Register(string groupId, string senderId)
     {
-        if (!Players.ContainsKey(groupId))
+        if (!Players.TryGetValue(groupId, out var group))
         {
-            Players[groupId] = new();
+            group = new Dictionary<string, Player>();
+            Players[groupId] = group;
         }
 
-        if (!Players[groupId].ContainsKey(memberId))
-        {
-            Players[groupId][memberId] = new();
-        }
+        if (group.TryGetValue(senderId, out var player)) return player;
+        
+        player = new Player();
+        group[senderId] = player;
 
-        return Players[groupId][memberId];
+        return player;
     }
 
-    public bool Buy(int id, int count)
+    public bool Buy(string name, int count)
     {
-        int price = PointShop[id] * count;
+        var price = PointShop[name] * count;
         if (Points < price)
         {
             return false;
         }
         Points -= price;
-        Bag.MergeValue(id, count);
+        Bag.MergeValue(name, count);
         return true;
     }
 
@@ -101,24 +102,20 @@ public class Player
     {
         if (!CanActivity(eventArgs)) return false;
         _lastActivityUnixTime = GetNowUnixTime();
-        if (Pet.Energy < energy)
-        {
-            //receiver.SendAtMessage("");
-            return false;
-        }
+        if (Pet.Energy < energy) return false;
 
         Pet.Energy -= energy;
         return true;
     }
 
-    public bool CanActivity(GroupMessageEventArgs receiver)
+    private bool CanActivity(GroupMessageEventArgs eventArgs)
     {
-        return CanActivity(receiver.SourceGroup.Id.ToString(), receiver.Sender.Id.ToString());
+        return CanActivity(eventArgs.SourceGroup.Id.ToString(), eventArgs.Sender.Id.ToString());
     }
 
     private bool CanActivity(string groupId, string memberId)
     {
-        if (GetNowUnixTime() - _lastActivityUnixTime > BreaksTime || (_lastActivityUnixTime == 0))
+        if (GetNowUnixTime() - _lastActivityUnixTime > PlayConfig.BreaksTime || (_lastActivityUnixTime == 0))
         {
             return HavePet(groupId, memberId);
         }

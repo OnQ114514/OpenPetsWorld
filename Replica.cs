@@ -1,4 +1,4 @@
-using OpenPetsWorld.Extra;
+using OpenPetsWorld.Item;
 
 namespace OpenPetsWorld;
 
@@ -18,7 +18,7 @@ public class Instance
     /// <summary>
     /// 奖励物品
     /// </summary>
-    private readonly Dictionary<int, int> _rewardingItems = new();
+    private readonly Dictionary<string, int> _rewardingItems = new();
     /// <summary>
     /// 最大奖励积分
     /// </summary>
@@ -63,7 +63,7 @@ public class Instance
 
         if (_neededItem != null)
         {
-            if (!player.Bag.TryGetValue(_neededItem.Id, out var value))
+            if (!player.Bag.TryGetValue(_neededItem.Name, out var value))
             {
                 return 1;
             }

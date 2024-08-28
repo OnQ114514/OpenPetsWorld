@@ -20,31 +20,31 @@ public static class Commands
 
         var builder = new MessageBodyBuilder();
         var player = Player.Register(group, sender);
-        if (player.Pet == null)
+        if (player.Pet != null)
         {
-            if (player.Points < ExtractNeededPoint)
-            {
-                return builder
-                    .At(sender)
-                    .Plain($"您的积分不足,无法进行砸蛋!\n【所需[{ExtractNeededPoint}]积分】\n请发送【签到】获得积分")
-                    .Build();
-            }
-
-            player.Points -= ExtractNeededPoint;
-            var pet = Pet.Gacha();
-
-            player.Pet = pet;
-
             return builder
                 .At(sender)
-                .Plain($" 恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋")
-                .Image(pet.Render())
+                .Plain("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生")
                 .Build();
         }
 
+        if (player.Points < PlayConfig.GachaPoint)
+        {
+            return builder
+                .At(sender)
+                .Plain($"您的积分不足,无法进行砸蛋!\n【所需[{PlayConfig.GachaPoint}]积分】\n请发送【签到】获得积分")
+                .Build();
+        }
+
+        player.Points -= PlayConfig.GachaPoint;
+        var pet = Pet.Gacha();
+
+        player.Pet = pet;
+
         return builder
             .At(sender)
-            .Plain("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生")
+            .Plain($" 恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋")
+            .Image(pet.Render())
             .Build();
     }
 
@@ -61,7 +61,7 @@ public static class Commands
         MessageBodyBuilder builder = new();
         if (player.Pet != null) return builder.At(member).Plain("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生").Build();
 
-        var neededPoint = ExtractNeededPoint * 10;
+        var neededPoint = PlayConfig.GachaPoint * 10;
         if (player.Points < neededPoint)
         {
             return builder.At(member).Plain($"您的积分不足,无法进行砸蛋!\n【所需[{neededPoint}]积分】\n请发送【签到】获得积分").Build();
@@ -155,7 +155,7 @@ public static class Commands
 
         for (var i = 0; i < levelsToUpgrade; i++)
         {
-            if (currentLevel == MaxLevel)
+            if (currentLevel == PlayConfig.MaxLevel)
             {
                 text = "你的宠物等级已达最高等级！";
                 goto Send;
@@ -218,8 +218,8 @@ public static class Commands
         }
 
         var player = Player.Register(eventArgs);
-        player.Bag.TryAdd(item.Id, 0);
-        if (count == -1) count = player.Bag[item.Id];
+        player.Bag.TryAdd(item.Name, 0);
+        if (count == -1) count = player.Bag[item.Name];
 
         item.Use(eventArgs, count);
     }
@@ -254,21 +254,21 @@ public static class Commands
         }
 
         // 确保玩家和目标玩家的背包都有道具的条目
-        player.Bag.TryAdd(item.Id, 0);
-        targetPlayer.Bag.TryAdd(item.Id, 0);
+        player.Bag.TryAdd(item.Name, 0);
+        targetPlayer.Bag.TryAdd(item.Name, 0);
 
         // 如果count为-1，则设置为玩家背包中的数量
-        if (count == -1) count = player.Bag[item.Id];
+        if (count == -1) count = player.Bag[item.Name];
 
-        if (player.Bag[item.Id] < count)
+        if (player.Bag[item.Name] < count)
         {
             eventArgs.SendAtMessage($"你的背包中【{item.Name}】不足{count}个！");
             return;
         }
 
         // 执行交易
-        player.Bag[item.Id] -= count;
-        targetPlayer.Bag[item.Id] += count;
+        player.Bag[item.Name] -= count;
+        targetPlayer.Bag[item.Name] += count;
 
         // 交易成功的反馈
         eventArgs.SendAtMessage("物品转让成功！");
@@ -326,12 +326,12 @@ public static class Commands
             return;
         }
 
-        if (PointShop.Commodities.TryGetValue(item.Id, out var unitPrice))
+        if (PointShop.Commodities.TryGetValue(item.Name, out var unitPrice))
         {
             var price = unitPrice * count;
 
             var player = Player.Register(eventArgs);
-            var succeeded = player.Buy(item.Id, count);
+            var succeeded = player.Buy(item.Name, count);
             eventArgs.SendAtMessage(succeeded
                 ? $"购买成功！获得{count}个{item.Name},本次消费{price}积分！可发送[我的背包]查询物品！\n物品说明：{item.Description}"
                 : $"你的积分不足[{price}]，无法购买！");

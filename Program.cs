@@ -35,7 +35,7 @@ internal static class Program
         Console.Title = "OpenPetWorld控制台";
 
         //设置log等级
-        Log.LogConfiguration.EnableConsoleOutput().SetLogLevel(LogLevel.Debug);
+        Log.LogConfiguration.EnableConsoleOutput().SetLogLevel(LogLevel.Info);
 
         const string configPath = "./config.json";
         if (File.Exists(configPath))
@@ -204,11 +204,19 @@ internal static class Program
                 var player = Player.Register(eventArgs);
                 if (HavePet(eventArgs, out var pet))
                 {
-                    if (player.Activity(eventArgs, 10)) break;
-                    var addExp = Random.Next(MinExpAdd, MaxExpAdd);
+                    if (!player.Activity(eventArgs, 10)) break;
+                    var addExp = Random.Next(PlayConfig.MinExpAdd, PlayConfig.MaxExpAdd);
                     pet.Experience += addExp;
+
+                    var place = PlayConfig.Places[Random.Next(PlayConfig.Places.Length)];
+                        
                     eventArgs.SendAtMessage(
-                        $"您的【{pet.Name}】正在{UnitingPlace[Random.Next(0, UnitingPlace.Length)]}刻苦的修炼！\r\n------------------\r\n·修炼时间：+{BreaksTime}秒\r\n·耗费精力：-10点\r\n·增加经验：+{addExp}\n------------------");
+                        $"您的【{pet.Name}】正在{place}刻苦的修炼！\r\n" +
+                        $"------------------\r\n" +
+                        $"·修炼时间：+{PlayConfig.BreaksTime}秒\r\n" +
+                        $"·耗费精力：-10点\r\n" +
+                        $"·增加经验：+{addExp}\n" +
+                        $"------------------");
                 }
 
                 break;
@@ -218,11 +226,11 @@ internal static class Program
                 var player = Player.Register(eventArgs);
                 if (HavePet(eventArgs, out var pet))
                 {
-                    if (player.Activity(eventArgs, 10)) break;
-                    var intellectAdd = Random.Next(MinIqAdd, MaxIqAdd);
+                    if (!player.Activity(eventArgs, 10)) break;
+                    var intellectAdd = Random.Next(PlayConfig.MinIqAdd, PlayConfig.MaxIqAdd);
                     pet.BaseIntellect += intellectAdd;
                     eventArgs.SendAtMessage(
-                        $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+{BreaksTime}秒\n●减少精力：-10点\n●获得智力：+{intellectAdd}\n------------------");
+                        $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+{PlayConfig.BreaksTime}秒\n●减少精力：-10点\n●获得智力：+{intellectAdd}\n------------------");
                 }
 
                 break;
@@ -232,10 +240,10 @@ internal static class Program
                 var player = Player.Register(eventArgs);
                 if (HavePet(eventArgs, out var pet))
                 {
-                    if (player.Activity(eventArgs, 10)) break;
+                    if (!player.Activity(eventArgs, 10)) break;
                     pet.BaseIntellect--;
                     var addAttr = RandomBool();
-                    var addAttrNumber = Random.Next(MinAttrAdd, MaxAttrAdd);
+                    var addAttrNumber = Random.Next(PlayConfig.MinAttrAdd, PlayConfig.MaxAttrAdd);
                     var addAttText = addAttr ? "攻击" : "防御";
                     if (addAttr)
                         pet.BaseAttack += addAttrNumber;
@@ -243,7 +251,7 @@ internal static class Program
                         pet.BaseDefense += addAttrNumber;
 
                     eventArgs.SendAtMessage(
-                        $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+{BreaksTime}秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttrNumber}\n------------------");
+                        $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+{PlayConfig.BreaksTime}秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttrNumber}\n------------------");
                 }
 
                 break;
@@ -353,7 +361,7 @@ internal static class Program
                 var n = 30;
                 foreach (var text in signTexts)
                 {
-                    graphics.DrawString(text, font, Brushes.Black, new Point(95, n));
+                    graphics.DrawString(text, font, Brushes.Black, new Point(92, n));
                     n += 18;
                 }
 
@@ -426,7 +434,7 @@ internal static class Program
             case "AllItemList":
                 if (senderId == _config.MasterId)
                 {
-                    var message = Items.Values.Select(item => $"{item.Id} {item.Name}").ToList();
+                    var message = Items.Values.Select(item => $"{item.Name} {item.Name}").ToList();
 
                     await eventArgs.Reply(string.Join("\n", message));
                 }
@@ -474,14 +482,14 @@ internal static class Program
 
                     if (target == null)
                     {
-                        foreach (var player in Players[groupId].Values) player.Bag.MergeValue(item.Id, count);
+                        foreach (var player in Players[groupId].Values) player.Bag.MergeValue(item.Name, count);
                     }
                     else
                     {
                         var group = Players[groupId];
                         if (group.TryGetValue(target, out var player))
                         {
-                            player.Bag.MergeValue(item.Id, count);
+                            player.Bag.MergeValue(item.Name, count);
                         }
                         else
                         {
@@ -545,13 +553,13 @@ internal static class Program
                     {
                         foreach (var player in players.Values)
                         {
-                            if (player.Bag[item.Id] < count)
+                            if (player.Bag[item.Name] < count)
                             {
                                 failCount++;
                                 continue;
                             }
 
-                            player.Bag.MergeValue(item.Id, -count);
+                            player.Bag.MergeValue(item.Name, -count);
                             succeedCount++;
                         }
 
@@ -562,7 +570,7 @@ internal static class Program
                     {
                         if (players.TryGetValue(target, out var player))
                         {
-                            if (player.Bag[item.Id] >= count) player.Bag.MergeValue(item.Id, -count);
+                            if (player.Bag[item.Name] >= count) player.Bag.MergeValue(item.Name, -count);
                         }
                         else
                         {
@@ -646,8 +654,8 @@ internal static class Program
                     List<string> message = new();
                     foreach (var item in gift.Items)
                     {
-                        message.Add($"{Items[item.Id].Name}*{item.Count}");
-                        player.Bag.MergeValue(item.Id, item.Count);
+                        message.Add($"{Items[item.Name].Name}*{item.Count}");
+                        player.Bag.MergeValue(item.Name, item.Count);
                     }
 
                     player.ClaimedGifts.Add(gift.Id);

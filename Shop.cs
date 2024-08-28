@@ -11,9 +11,9 @@ public class Shop
     [JsonIgnore] private readonly int _pagesCount;
     public string Command = "";
     public string Name = "";
-    public Dictionary<int, int> Commodities = new();
+    public Dictionary<string, int> Commodities = new();
 
-    public int this[int i] => Commodities[i];
+    public int this[string i] => Commodities[i];
 
     public Shop()
     {

@@ -7,18 +7,11 @@ using OpenPetsWorld.PetTool;
 using Sora.EventArgs.SoraEvent;
 using YukariToolBox.LightLog;
 using static OpenPetsWorld.Program;
-using File = System.IO.File;
 
 namespace OpenPetsWorld
 {
     public static class Game
     {
-        public static string[] Ranks = [];
-        public static string[] Attributes = [];
-        public static string[] UnitingPlace = [];
-
-        public static int BreaksTime = 120;
-
         /// <summary>
         /// 怪物入侵
         /// </summary>
@@ -32,7 +25,7 @@ namespace OpenPetsWorld
         /// <summary>
         /// 物品
         /// </summary>
-        public static Dictionary<int, BaseItem> Items = new();
+        public static Dictionary<string, BaseItem> Items = new();
 
         /// <summary>
         /// 宠物卡池
@@ -64,19 +57,7 @@ namespace OpenPetsWorld
         /// </summary>
         public static Image Wallpaper = new Bitmap(650, 500);
 
-        public static int MaxIqAdd;
-        public static int MinIqAdd;
-        public static int MaxAttrAdd;
-        public static int MinAttrAdd;
-        public static int MaxExpAdd;
-        public static int MinExpAdd;
-
-        public static int MaxLevel = 300;
-
-        /// <summary>
-        /// 单次砸蛋所需积分
-        /// </summary>
-        public static int ExtractNeededPoint = 500;
+        public static GameConfig PlayConfig = new();
 
         public static bool HavePet(GroupMessageEventArgs x, bool send = true)
         {
@@ -160,22 +141,10 @@ namespace OpenPetsWorld
 
             Log.Info("Reading", "读取杂项数据中…");
             const string miscPath = "./datapack/misc.json";
-            var misc = TryRead<Misc>(miscPath);
-            if (misc != null)
+            var config = TryRead<GameConfig>(miscPath);
+            if (config != null)
             {
-                Ranks = misc.Ranks;
-                UnitingPlace = misc.UnitingPlace;
-                Attributes = misc.Attributes;
-                BreaksTime = misc.BreaksTime;
-
-                MaxAttrAdd = misc.MaxAttrAdd;
-                MinAttrAdd = misc.MinAttrAdd;
-                MaxExpAdd = misc.MaxExpAdd;
-                MinExpAdd = misc.MinExpAdd;
-                MaxIqAdd = misc.MaxIQAdd;
-                MinIqAdd = misc.MinIQAdd;
-
-                ExtractNeededPoint = misc.ExtractNeededPoint;
+                PlayConfig = config;
             }
 
             #endregion

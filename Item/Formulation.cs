@@ -1,6 +1,4 @@
-using OpenPetsWorld.Item;
-
-namespace OpenPetsWorld.Extra;
+namespace OpenPetsWorld.Item;
 
 /// <summary>
 /// 物品配方类
@@ -17,14 +15,11 @@ public class Formulation
 
 public class FItem
 {
-    public int Id;
+    public string Name;
     public int Count = 1;
 
-    public static implicit operator FItem(BaseItem item)
+    public static implicit operator FItem(BaseItem item) => new()
     {
-        return new()
-        {
-            Id = item.Id
-        };
-    }
+        Name = item.Name
+    };
 }
