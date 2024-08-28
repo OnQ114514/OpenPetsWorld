@@ -30,11 +30,20 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
 
-      - name: Publish
-        run: dotnet publish --configuration Release --output ./output
+      - name: Publish Linux version (x64)
+        run: dotnet publish --configuration Release --runtime linux-x64 --output ./output/linux/x64
+
+      - name: Publish Linux version (arm64)
+        run: dotnet publish --configuration Release --runtime linux-arm64 --output ./output/linux/arm64
+
+      - name: Publish Windows version
+        run: dotnet publish --configuration Release --runtime win-x64 --output ./output/windows
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: dotnet-artifact
-          path: ./output
+          path: |
+            ./output/linux/x64
+            ./output/linux/arm64
+            ./output/windows
