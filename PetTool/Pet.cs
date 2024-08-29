@@ -35,7 +35,7 @@ public class Pet
     public long BaseMaxEnergy = 100;
     [JsonProperty(PropertyName = "MaxHealth")]
     public long BaseMaxHealth;
-    [JsonProperty(PropertyName = "longellect")]
+    [JsonProperty(PropertyName = "Intellect")]
     public long BaseIntellect = 4;
     [JsonProperty(PropertyName = "Attack")]
     public long BaseAttack = 10;
@@ -86,8 +86,8 @@ public class Pet
     private string GetMoodSymbol()
     {
         var star = string.Empty;
-        int starNumber = (int)Math.Round((double)Mood / 10);
-        for (int i = 0; i < starNumber; i++)
+        var starNumber = (int)Math.Round((double)Mood / 10);
+        for (var i = 0; i < starNumber; i++)
         {
             star += "★";
         }
@@ -166,7 +166,7 @@ public class Pet
 
     public bool RemoveArtifact(GroupMessageEventArgs receiver)
     {
-        if (Artifact.Name == Item.Artifact.Null.Name)
+        if (Artifact.Name == Artifact.Null.Name)
         {
             return false;
         }

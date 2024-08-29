@@ -111,7 +111,7 @@ internal static class Program
             _soraApi = eventArgs.SoraApi;
             return ValueTask.CompletedTask;
         };
-        
+
         service.Event.OnGroupMessage += (_, eventArgs) => OnMessage(eventArgs);
         await service.StartService().RunCatch(e => Log.Error("Sora Service", Log.ErrorLogBuilder(e)));
 
@@ -123,6 +123,8 @@ internal static class Program
 
     private static bool Filter(GroupMessageEventArgs x)
     {
+        if (_config.UserBlackList.Contains(x.Sender.Id)) return false;
+
         var whiteList = _config.GroupList.Contains(x.SourceGroup.Id.ToString());
         return _config.BlackListMode ? !whiteList : whiteList;
     }
@@ -131,8 +133,9 @@ internal static class Program
     {
         if (!Filter(eventArgs)) return;
 
-        var groupId = eventArgs.SourceGroup.Id.ToString();
-        var senderId = eventArgs.Sender.Id.ToString();
+        var groupId = eventArgs.SourceGroup.Id;
+        var senderId = eventArgs.Sender.Id;
+        var senderName = (await eventArgs.Sender.GetUserInfo()).userInfo.Nick;
         var context = eventArgs.Message;
         var textMessage = context.GetText();
 
@@ -148,7 +151,7 @@ internal static class Program
         switch (textMessage)
         {
             case "OpenPetsWorld":
-                await eventArgs.Reply("由 OpenPetsWorld Pre.3 核能驱动");
+                await eventArgs.Reply("由 OpenPetsWorld Pre.3 核能驱动！");
                 break;
 
             case "关OPW":
@@ -209,7 +212,7 @@ internal static class Program
                     pet.Experience += addExp;
 
                     var place = PlayConfig.Places[Random.Next(PlayConfig.Places.Length)];
-                        
+
                     eventArgs.SendAtMessage(
                         $"您的【{pet.Name}】正在{place}刻苦的修炼！\r\n" +
                         $"------------------\r\n" +
@@ -335,12 +338,8 @@ internal static class Program
                 var points = 2200 + player.SignedDays * 50;
                 player.Points += points;
 
-                //Stopwatch watch = new();
-                //watch.Start();
-
                 #region 绘图
 
-                var senderName = (await eventArgs.Sender.GetUserInfo()).userInfo.Nick;
                 var stream =
                     await HttpClient.GetStreamAsync($"https://q2.qlogo.cn/headimg_dl?dst_uin={senderId}&spec=100");
                 using Bitmap image = new(230, 90);
@@ -367,9 +366,6 @@ internal static class Program
 
                 #endregion 绘图
 
-                //watch.Stop();
-                //Debug.Write(watch.ElapsedMilliseconds);
-
                 eventArgs.SendBmpMessage(image);
                 break;
             }
@@ -380,7 +376,7 @@ internal static class Program
                 using var graphics = Graphics.FromImage(bitmap);
                 using Font font = new("Microsoft YaHei", 23, FontStyle.Bold);
                 graphics.Clear(Color.White);
-                graphics.DrawString($"[@{senderId}]您的财富信息如下：", font, Black, 2, 2);
+                graphics.DrawString($"@{senderName} 财富信息如下：", font, Black, 2, 2);
                 graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 55), new Point(480, 55));
                 graphics.DrawString($"●积分：{player.Points}", font, Black, 0, 65);
                 graphics.DrawString($"●点券：{player.Bonds}", font, Black, 0, 125);
@@ -391,13 +387,13 @@ internal static class Program
             case "我的背包":
             {
                 var player = Player.Register(eventArgs);
-                List<string> bagItemList = new();
-                foreach (var (id, count) in player.Bag)
+                List<string> bagItemList = [];
+                foreach (var (name, count) in player.Bag)
                 {
-                    var item = Items[id];
+                    var item = Items[name];
                     var type = item.ItemType.ToStr();
 
-                    if (count != 0) bagItemList.Add($"●[{type}]:{item.Name}⨉{count}");
+                    if (count != 0) bagItemList.Add($"●[{type}]:{name}⨉{count}");
                 }
 
                 if (bagItemList.Count == 0)
@@ -431,15 +427,21 @@ internal static class Program
 
                 break;
             }
+#if DEBUG
             case "AllItemList":
-                if (senderId == _config.MasterId)
-                {
-                    var message = Items.Values.Select(item => $"{item.Name} {item.Name}").ToList();
+            {
+                if (senderId != _config.MasterId) break;
 
-                    await eventArgs.Reply(string.Join("\n", message));
-                }
-
+                var message = Items.Values.Select(item => $"{item.Name}");
+                await eventArgs.Reply(string.Join("\n", message));
                 break;
+            }
+            case "崩溃测试":
+            {
+                if (senderId != _config.MasterId) break;
+                throw new Exception("崩溃测试");
+            }
+#endif
 
             default:
                 if (textMessage.StartsWith("使用"))
@@ -472,9 +474,7 @@ internal static class Program
                         break;
                     }
 
-                    var item = FindItem(itemName);
-
-                    if (item == null)
+                    if (!Items.TryGetValue(itemName, out var item))
                     {
                         eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
                         break;
@@ -487,7 +487,7 @@ internal static class Program
                     else
                     {
                         var group = Players[groupId];
-                        if (group.TryGetValue(target, out var player))
+                        if (group.TryGetValue(target.Value, out var player))
                         {
                             player.Bag.MergeValue(item.Name, count);
                         }
@@ -500,33 +500,6 @@ internal static class Program
 
                     await eventArgs.Reply($"已奖励{itemName}*{count}");
                 }
-                else if (textMessage.StartsWith("选择"))
-                {
-                    if (!(textMessage.Length > 2 && int.TryParse(textMessage[2..], out var decidedCount) &&
-                          decidedCount > 0)) return;
-
-                    var player = Player.Register(eventArgs);
-
-                    if (player.GachaPets == null) return;
-
-                    if (player.Pet != null)
-                    {
-                        eventArgs.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
-                        break;
-                    }
-
-
-                    var pet = player.GachaPets[decidedCount - 1];
-
-                    player.Pet = pet;
-                    player.GachaPets = null;
-
-                    await eventArgs.Reply(new MessageBodyBuilder()
-                        .At(senderId)
-                        .Plain($" 恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋")
-                        .Image(pet.Render())
-                        .Build());
-                }
                 else if (textMessage.StartsWith("扣除") && HavePermissions(senderId))
                 {
                     Tools.ParseString(context, 2, out var itemName, out var count, out var target);
@@ -537,9 +510,7 @@ internal static class Program
                         break;
                     }
 
-                    var item = FindItem(itemName);
-
-                    if (item == null)
+                    if (!Items.TryGetValue(itemName, out var item))
                     {
                         eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
                         break;
@@ -568,7 +539,7 @@ internal static class Program
                     }
 
                     {
-                        if (players.TryGetValue(target, out var player))
+                        if (players.TryGetValue(target.Value, out var player))
                         {
                             if (player.Bag[item.Name] >= count) player.Bag.MergeValue(item.Name, -count);
                         }
@@ -580,6 +551,75 @@ internal static class Program
                     }
 
                     await eventArgs.Reply($"已扣除{itemName}*{count}");
+                }
+                else if (textMessage.StartsWith("拉黑") && HavePermissions(senderId))
+                {
+                    var targetId = GetAtNumber(context.MessageBody);
+                    if (targetId == null) return;
+
+                    _config.UserBlackList.Add(targetId.Value);
+                    eventArgs.SendAtMessage($"已拉黑 {targetId}");
+                }
+                else if (textMessage.StartsWith("解除拉黑") && HavePermissions(senderId))
+                {
+                    var targetId = GetAtNumber(context.MessageBody);
+                    if (targetId == null) return;
+
+                    if (!_config.UserBlackList.Remove(targetId.Value))
+                    {
+                        eventArgs.SendAtMessage($"{targetId} 并未被拉黑");
+                        return;
+                    }
+
+                    eventArgs.SendAtMessage($"已解除拉黑 {targetId}");
+                }
+                else if (textMessage.StartsWith("移除管理") && senderId == _config.MasterId)
+                {
+                    var targetId = GetAtNumber(context.MessageBody);
+                    if (targetId == null) return;
+
+                    if (!_config.Admins.Remove(targetId.Value))
+                    {
+                        eventArgs.SendAtMessage($"{targetId} 并不是管理");
+                        return;
+                    }
+
+                    eventArgs.SendAtMessage($"已移除管理 {targetId}");
+                }
+                else if (textMessage.StartsWith("添加管理") && senderId == _config.MasterId)
+                {
+                    var targetId = GetAtNumber(context.MessageBody);
+                    if (targetId == null) return;
+
+                    _config.Admins.Add(targetId.Value);
+                    eventArgs.SendAtMessage($"已添加管理 {targetId}");
+                }
+                else if (textMessage.StartsWith("选择"))
+                {
+                    if (!(textMessage.Length > 2 && int.TryParse(textMessage[2..], out var decidedCount) &&
+                          decidedCount > 0)) return;
+
+                    var player = Player.Register(eventArgs);
+
+                    if (player.GachaPets == null) return;
+
+                    if (player.Pet != null)
+                    {
+                        eventArgs.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
+                        break;
+                    }
+
+
+                    var pet = player.GachaPets[decidedCount - 1];
+
+                    player.Pet = pet;
+                    player.GachaPets = null;
+
+                    await eventArgs.Reply(new MessageBodyBuilder()
+                        .At(senderId)
+                        .Plain($" 恭喜您砸到了一颗{pet.Attribute}属性的宠物蛋")
+                        .Image(pet.Render())
+                        .Build());
                 }
                 else if (textMessage.StartsWith("宠物商店"))
                 {
@@ -600,8 +640,7 @@ internal static class Program
                 else if (textMessage.StartsWith("查看"))
                 {
                     var itemName = textMessage[2..];
-                    var item = FindItem(itemName);
-                    if (item == null)
+                    if (!Items.TryGetValue(itemName, out var item))
                     {
                         eventArgs.SendAtMessage("此物品不存在，或者输入错误！");
                         break;
@@ -610,8 +649,10 @@ internal static class Program
                     MessageBodyBuilder builder = new();
 
                     if (item.DescriptionImageName != null)
-                        builder.Image(
-                            Path.GetFullPath($"./datapack/itemicon/{item.DescriptionImageName}.png"));
+                    {
+                        var image = Image.FromFile($"./datapack/itemicon/{item.DescriptionImageName}.png");
+                        builder.Image(image);
+                    }
 
                     builder.Plain($"{item.Name}：{item.Description}");
 
@@ -620,6 +661,10 @@ internal static class Program
 #endif
 
                     await eventArgs.Reply(builder.Build());
+                }
+                else if (textMessage.StartsWith("查看"))
+                {
+                    Commands.Sell(eventArgs);
                 }
                 else if (textMessage.StartsWith("合成"))
                 {
@@ -701,7 +746,7 @@ internal static class Program
                     _ = replica.Challenge(player, count, out var expAdd, out var pointAdd);
 
                     #region 绘图
-                    
+
                     using Bitmap bitmap = new(600, 205);
                     using var graphics = Graphics.FromImage(bitmap);
                     using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
@@ -712,7 +757,7 @@ internal static class Program
                     graphics.DrawString(
                         $"◆消耗精力：{replica.Energy * count}\n◆血量减少：{replica.Attack * count}\n◆获得积分：{(player.Pet.Health == 0 ? "死亡" : "正常")}",
                         font, Brushes.Black, 305, 55);
-                    
+
                     #endregion
 
                     MessageBodyBuilder builder = new();
@@ -737,7 +782,7 @@ internal static class Program
                     const int energy = 5;
                     var target = GetAtNumber(context.MessageBody);
                     if (target == null) return;
-                    
+
 
                     if (pet.Energy < energy)
                     {
@@ -745,15 +790,15 @@ internal static class Program
                         eventArgs.SendAtMessage($"你的宠物已经精疲力竭了，侦察宠物需要消化{energy}点精力！当前精力剩余{pet.Energy}");
                         return;
                     }
-                    
-                    var targetPlayer = Player.Register(groupId, target);
+
+                    var targetPlayer = Player.Register(groupId, target.Value);
                     if (targetPlayer.Pet == null)
                     {
                         eventArgs.SendAtMessage("对方还未拥有宠物，无法进行侦查宠物！");
                         return;
                     }
 
-                    pet.Energy -= energy; 
+                    pet.Energy -= energy;
                     await eventArgs.Reply(new MessageBodyBuilder()
                         .At(senderId)
                         .Plain($" 侦察成功，精力-{energy}，您侦察的宠物信息如下：")
@@ -773,9 +818,9 @@ internal static class Program
         var commands = input.Split(' ');
         switch (commands[0])
         {
-            case "delconfig":
-                File.Delete("./config.json");
-                Console.WriteLine("已清除配置");
+            case "config save":
+                WriteConfig();
+                Console.WriteLine("已保存配置");
                 break;
 
             case "stop":
@@ -882,7 +927,7 @@ internal static class Program
         Console.WriteLine(text);
     }
 
-    public static bool RandomBool()
+    private static bool RandomBool()
     {
         return Random.Next(0, 2) == 1;
     }
@@ -906,19 +951,16 @@ internal static class Program
         _config = config;
     }
 
-    private static bool HavePermissions(string id)
+    private static bool HavePermissions(long id)
     {
         return _config.Admins.Contains(id) || _config.MasterId == id;
     }
 
-    public static string? GetAtNumber(MessageBody messages)
+    public static long? GetAtNumber(MessageBody messages)
     {
-        foreach (var message in messages.ToList())
+        foreach (var message in messages.ToList().Where(message => message.MessageType == SegmentType.At))
         {
-            if (message.MessageType == SegmentType.At)
-            {
-                return ((AtSegment)message.Data).Target;
-            }
+            return ((AtSegment)message.Data).Target.ToInt64();
         }
 
         return null;
@@ -963,7 +1005,7 @@ internal static class Program
                 Port = _config.Port
             };
         }
-        
+
         //正向Websocket
         return new ClientConfig
         {
@@ -975,50 +1017,59 @@ internal static class Program
             Port = _config.Port
         };
     }
-    
+
     private static void Initialize()
-{
-    #region 设置连接类型
-    Console.Write("使用反向Websocket(Y/n):");
-    var reverseReslut = Console.ReadLine();
-    var reverse = true;
-    if (!reverseReslut.IsNullOrEmpty() && reverseReslut.ToLower() == "n")
     {
-        reverse = false;
-        _config.ReverseWebsocket = true;
-        Console.Write("连接地址(不含端口):");
-        var host = Console.ReadLine();
-        if (!string.IsNullOrEmpty(host))
+        #region 设置连接类型
+
+        Console.Write("使用反向Websocket(Y/n):");
+        var reverseReslut = Console.ReadLine();
+        var reverse = true;
+        if (!reverseReslut.IsNullOrEmpty() && reverseReslut.ToLower() == "n")
         {
-            _config.Host = host;
+            reverse = false;
+            _config.ReverseWebsocket = true;
+            Console.Write("连接地址(不含端口):");
+            var host = Console.ReadLine();
+            if (!string.IsNullOrEmpty(host))
+            {
+                _config.Host = host;
+            }
         }
-    }
-    #endregion
-    #region 设置端口
-    while (true)
-    {
-        Console.Write("连接端口(留空则8080):");
-        var portText = Console.ReadLine();
-        if (string.IsNullOrEmpty(portText)) break;
-        // 尝试解析端口号
-        if (ushort.TryParse(portText, out var port))
+
+        #endregion
+
+        #region 设置端口
+
+        while (true)
         {
-            _config.Port = port;
-            break;
+            Console.Write("连接端口(留空则8080):");
+            var portText = Console.ReadLine();
+            if (string.IsNullOrEmpty(portText)) break;
+            // 尝试解析端口号
+            if (ushort.TryParse(portText, out var port))
+            {
+                _config.Port = port;
+                break;
+            }
+
+            Console.WriteLine("请输入有效的端口号！");
         }
-        Console.WriteLine("请输入有效的端口号！");
+
+        #endregion
+
+        #region 设置是否公开至局域网
+
+        if (!reverse) return;
+        Console.Write("是否公开至局域网(y/N):");
+        var lanPublic = Console.ReadLine();
+        if (!lanPublic.IsNullOrEmpty() && lanPublic.ToLower() == "y")
+        {
+            _config.LanPublic = true;
+        }
+
+        #endregion
     }
-    #endregion
-    #region 设置是否公开至局域网
-    if (!reverse) return;
-    Console.Write("是否公开至局域网(y/N):");
-    var lanPublic = Console.ReadLine();
-    if (!lanPublic.IsNullOrEmpty() && lanPublic.ToLower() == "y")
-    {
-        _config.LanPublic = true;
-    }
-    #endregion
-}
 
     private static string? GetLocalIpAddress()
     {
@@ -1026,7 +1077,7 @@ internal static class Program
         foreach (var ip in ipEntry.AddressList)
         {
             if (ip.AddressFamily != AddressFamily.InterNetwork) continue;
-            
+
             var ipText = ip.ToString();
             if (ipText.StartsWith("192.168.")) return ipText;
         }
@@ -1042,9 +1093,9 @@ internal static class Program
 
     #region 发送消息
 
-    public static async void SendAtMessage(string groupId, string memberId, string message)
+    public static async void SendAtMessage(long groupId, long senderId, string message)
     {
-        await SendMessage(groupId, new MessageBodyBuilder().At(memberId).Plain(" " + message).Build());
+        await SendMessage(groupId, new MessageBodyBuilder().At(senderId).Plain(" " + message).Build());
     }
 
     /*public static async void SendBmpMessage(string groupId, Image imageData)
@@ -1052,9 +1103,9 @@ internal static class Program
         await SendMessage(groupId, new MessageBodyBuilder().Image(imageData).Build());
     }*/
 
-    public static async Task SendMessage(string groupId, MessageBody message)
+    public static async Task SendMessage(long groupId, MessageBody message)
     {
-        await _soraApi.SendGroupMessage(groupId.ToInt64(), message);
+        await _soraApi.SendGroupMessage(groupId, message);
     }
 
     #endregion 发送消息

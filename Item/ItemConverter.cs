@@ -7,18 +7,18 @@ public class ItemConverter : JsonConverter
 {
     public override bool CanConvert(Type objectType)
     {
-        return typeof(Dictionary<int, BaseItem>).IsAssignableFrom(objectType);
+        return typeof(Dictionary<string, BaseItem>).IsAssignableFrom(objectType);
     }
 
     public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
-        var dictionary = new Dictionary<int, BaseItem>();
+        var dictionary = new Dictionary<string, BaseItem>();
         var jsonObject = JObject.Load(reader);
-        var origin = jsonObject.ToObject<Dictionary<int, object>>();
+        var origin = jsonObject.ToObject<Dictionary<string, object>>();
 
         foreach (var key in origin.Keys)
         {
-            var token = jsonObject[key.ToString()];
+            var token = jsonObject[key];
             var type = token["ItemType"].ToObject<ItemType>();
 
             BaseItem? value = type switch

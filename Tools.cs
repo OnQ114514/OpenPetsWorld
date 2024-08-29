@@ -58,27 +58,28 @@ namespace OpenPetsWorld
 
         public static string ToFormat(this long v)
         {
-            const int hundredMillion = 100000000;
-            const int tenThousand = 10000;
-            //const string format = "0.0";
+            const long trillion = 1000000000000;
+            const long hundredMillion = 100000000;
+            const long tenThousand = 10000;
             decimal origin = v;
 
-            if (v >= hundredMillion)
+            switch (v)
             {
-                origin /= hundredMillion;
-                return Math.Round(origin, 1, MidpointRounding.ToZero) + "E";
+                case >= trillion:
+                    origin /= hundredMillion;
+                    return Math.Round(origin, 1, MidpointRounding.ToZero) + "WE";
+                case >= hundredMillion:
+                    origin /= hundredMillion;
+                    return Math.Round(origin, 1, MidpointRounding.ToZero) + "E";
+                case >= tenThousand:
+                    origin /= tenThousand;
+                    return Math.Round(origin, 1, MidpointRounding.ToZero) + "W";
+                default:
+                    return v.ToString();
             }
-
-            if (v >= tenThousand)
-            {
-                origin /= tenThousand;
-                return Math.Round(origin, 1, MidpointRounding.ToZero) + "W";
-            }
-
-            return v.ToString();
         }
 
-        public static string ToSignedString(this int value)
+        public static string ToSignedString(this long value)
         {
             if (value > 0)
             {
@@ -111,7 +112,7 @@ namespace OpenPetsWorld
 
         //TODO:使用更好的跳过策略而不是硬编码skipCount
         public static void ParseString(MessageContext message, int skipCount, out string name, out int count,
-            out string? target)
+            out long? target)
         {
             var text = message.GetText()[skipCount..];
             name = string.Empty;
@@ -139,17 +140,16 @@ namespace OpenPetsWorld
             }
 
             // 提取目标
-            if (targetIndex != -1)
+            if (targetIndex == -1) return;
+            
+            var targetText = text[(targetIndex + 1)..].Trim();
+            if (long.TryParse(targetText, out var targetNumber))
             {
-                var targetText = text[(targetIndex + 1)..].Trim();
-                if (long.TryParse(targetText, out var targetNumber))
-                {
-                    target = targetNumber.ToString();
-                }
-                else
-                {
-                    target = GetAtNumber(message.MessageBody) ?? null;
-                }
+                target = targetNumber;
+            }
+            else
+            {
+                target = GetAtNumber(message.MessageBody) ?? null;
             }
         }
 
