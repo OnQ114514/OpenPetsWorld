@@ -144,9 +144,9 @@ public static class Commands
     public static MessageBody? LevelUp(long groupId, long senderId, int levelsToUpgrade = 1)
     {
         if (!HavePet(groupId, senderId, out var pet)) return null;
-
+        
         string text;
-
+        
         var originalPower = pet.Power;
         var currentLevel = pet.Level;
         long allExp = 0;
@@ -163,25 +163,28 @@ public static class Commands
                 goto Send;
             }
 
-            var expNeeded = nextExpNeeded = GetLevelUpExp(currentLevel);
-            var tempExp = allExp + expNeeded;
+            var expNeeded = GetLevelUpExp(currentLevel);
 
-            if (allExp > pet.Experience) break;
+            // 检查是否有足够的经验升级
+            if (allExp + expNeeded > pet.Experience) break;
 
             allHealth += 2 * Pow(currentLevel, 2) + 4 * currentLevel + 10;
             allAttribute += 3 * currentLevel + 1;
-
             currentLevel++;
             addedLevel++;
-
-            allExp = tempExp;
+            allExp += expNeeded; // 累加经验
         }
 
         if (addedLevel == 0)
         {
-            text =
-                $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!";
+            text = $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!";
             goto Send;
+        }
+
+        // 确保不会扣除超过当前经验的值
+        if (pet.Experience < allExp)
+        {
+            allExp = pet.Experience;
         }
 
         pet.Level = currentLevel;
@@ -210,7 +213,7 @@ public static class Commands
         var context = eventArgs.Message;
         Tools.ParseString(context, 2, out var itemName, out var count, out var target);
         if (!IsCompliant(eventArgs, count)) return;
-        
+
         if (!Items.TryGetValue(itemName, out var item))
         {
             eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
@@ -230,7 +233,7 @@ public static class Commands
         Tools.ParseString(context, 2, out var itemName, out var count, out var targetId);
 
         if (!IsCompliant(eventArgs, count)) return;
-        
+
         if (!Items.TryGetValue(itemName, out var item))
         {
             eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
@@ -245,7 +248,7 @@ public static class Commands
 
         var player = Player.Register(eventArgs);
         var group = eventArgs.SourceGroup.Id;
-        
+
         if (targetId == null || !Players[group].TryGetValue(targetId.Value, out var targetPlayer))
         {
             eventArgs.SendAtMessage("目标玩家不存在！");
@@ -277,7 +280,7 @@ public static class Commands
     {
         var context = eventArgs.Message;
         var groupId = eventArgs.SourceGroup.Id;
-        
+
         var target = GetAtNumber(context.MessageBody);
         if (target == null)
         {
@@ -312,8 +315,8 @@ public static class Commands
 
     public static void Buy(GroupMessageEventArgs eventArgs)
     {
-        var context = eventArgs.Message; 
-        
+        var context = eventArgs.Message;
+
         Tools.ParseString(context, 2, out var itemName, out var count, out _);
 
         if (!IsCompliant(eventArgs, count)) return;
@@ -345,10 +348,10 @@ public static class Commands
     /// </summary>
     public static void Make(GroupMessageEventArgs eventArgs)
     {
-        var senderId = eventArgs.Sender.Id.ToString();
+        var senderId = eventArgs.Sender.Id;
         var context = eventArgs.Message;
         var textMessage = context.GetText();
-        
+
         if (textMessage.Length < 3)
         {
             eventArgs.SendAtMessage("◇指令:合成+道具*数量");
@@ -357,7 +360,7 @@ public static class Commands
 
         Tools.ParseString(context, 2, out var itemName, out var count, out _);
         if (!IsCompliant(eventArgs, count)) return;
-        
+
         if (!Items.TryGetValue(itemName, out var item))
         {
             eventArgs.SendAtMessage("此物品不存在，或者输入错误！");
@@ -365,9 +368,9 @@ public static class Commands
         }
 
         if (!item.Make(eventArgs, count)) return;
-        
+
         var path = $"./itemicon/{item.DescriptionImageName}.png";
-        var icon = Image.FromFile(path); 
+        var icon = Image.FromFile(path);
         eventArgs.Reply(new MessageBodyBuilder()
             .Image(icon)
             .At(senderId)
@@ -379,7 +382,7 @@ public static class Commands
     {
         var context = eventArgs.Message;
         var textMessage = context.GetText();
-        
+
         if (textMessage.Length < 3)
         {
             eventArgs.SendAtMessage("◇指令:出售+道具*数量");
@@ -407,7 +410,7 @@ public static class Commands
         player.Points += points;
         eventArgs.SendAtMessage($"成功出售【{itemName}×{count}】,成功卖出了【{points}】积分!");
     }
-    
+
     /// <summary>
     /// 判断数量是否合法
     /// </summary>

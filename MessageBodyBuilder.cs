@@ -38,16 +38,10 @@ public class MessageBodyBuilder
         _body.Add(SoraSegment.Image(fullPath));
         return this;
     }
-
+    
     public MessageBodyBuilder Image(Image image)
     {
         _body.Add(SoraSegment.Image("base64://" + Tools.ToBase64(image)));
-        return this;
-    }
-    
-    public MessageBodyBuilder ImageFromBase64(string base64)
-    {
-        _body.Add(SoraSegment.Image("base64://" + base64));
         return this;
     }
 }
