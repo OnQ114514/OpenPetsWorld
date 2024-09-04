@@ -1,6 +1,7 @@
 using System.Drawing;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
+using SkiaSharp;
 using Sora.EventArgs.SoraEvent;
 using static OpenPetsWorld.Game;
 using static OpenPetsWorld.Program;
@@ -16,29 +17,28 @@ public class Pet
     public string Name;
     public long MaxExperience = 160;
 
-    [JsonIgnore]
-    public long MaxEnergy => BaseMaxEnergy + Artifact.Energy;
+    [JsonIgnore] public long MaxEnergy => BaseMaxEnergy + Artifact.Energy;
 
-    [JsonIgnore]
-    public long MaxHealth => BaseMaxHealth + Artifact.Health;
+    [JsonIgnore] public long MaxHealth => BaseMaxHealth + Artifact.Health;
 
-    [JsonIgnore]
-    public long Intellect => BaseIntellect + Artifact.Intellect;
+    [JsonIgnore] public long Intellect => BaseIntellect + Artifact.Intellect;
 
-    [JsonIgnore]
-    public long Attack => BaseAttack + Artifact.Attack;
+    [JsonIgnore] public long Attack => BaseAttack + Artifact.Attack;
 
-    [JsonIgnore]
-    public long Defense => BaseDefense + Artifact.Defense;
+    [JsonIgnore] public long Defense => BaseDefense + Artifact.Defense;
 
     [JsonProperty(PropertyName = "MaxEnergy")]
     public long BaseMaxEnergy = 100;
+
     [JsonProperty(PropertyName = "MaxHealth")]
     public long BaseMaxHealth;
+
     [JsonProperty(PropertyName = "Intellect")]
     public long BaseIntellect = 4;
+
     [JsonProperty(PropertyName = "Attack")]
     public long BaseAttack = 10;
+
     [JsonProperty(PropertyName = "Defense")]
     public long BaseDefense = 10;
 
@@ -63,6 +63,7 @@ public class Pet
     /// 实际性别
     /// </summary>
     private bool _gender;
+
     /// <summary>
     /// 是否显示为人的性别
     /// </summary>
@@ -70,18 +71,19 @@ public class Pet
 
     public Stage Stage = Stage.Infancy;
     public string Attribute;
+
     public string Rank;
+
     //TODO:完善状态
     public string State = "正常";
     public string? IconName;
     public string PetTalent = "无";
-    
+
     public Artifact Artifact = Artifact.Null;
     public int Mood = 50;
     public List<Morphology>? Morphologies;
 
-    [JsonIgnore]
-    public long Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
+    [JsonIgnore] public long Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
 
     private string GetMoodSymbol()
     {
@@ -178,15 +180,20 @@ public class Pet
         return true;
     }
 
-    public Image Render()
+    public SKBitmap Render()
     {
-        var image = (Image)Wallpaper.Clone();
-        using var graphics = Graphics.FromImage(image);
+        var image = Wallpaper.Copy();
+        using var canvas = new SKCanvas(image);
+
+        using var font = Tools.FontRegister(20);
+        using var paint = new SKPaint();
+        paint.IsAntialias = true;
+        paint.Color = SKColors.Black;
 
         var iconPath = $"./datapack/peticon/{IconName}";
         if (IconName != null && File.Exists(iconPath))
         {
-            graphics.DrawImage(Image.FromFile(iconPath), 5, 5, 380, 380);
+            canvas.DrawBitmap(SKBitmap.Decode(iconPath), new SKRect(5, 5, 380, 380));
         }
 
         string[] abTexts =
@@ -196,10 +203,10 @@ public class Pet
             $"血量:{Health.ToFormat()}/{MaxHealth.ToFormat()}",
             $"经验:{Experience.ToFormat()}/{MaxExperience.ToFormat()}"
         ];
-        int n = 390;
+        var n = 415;
         foreach (var abText in abTexts)
         {
-            graphics.DrawString(abText, YaHei, Black, 15, n);
+            canvas.DrawText("◆" + abText, 15, n, font, paint);
             n += 25;
         }
 
@@ -220,10 +227,10 @@ public class Pet
             $"防御:{Defense.ToFormat()}"
         ];
 
-        int n2 = 20;
+        var n2 = 55;
         foreach (var abText in abTexts2)
         {
-            graphics.DrawString("◆" + abText, YaHei, Black, 395, n2);
+            canvas.DrawText("◆" + abText, 395, n2, font, paint);
             n2 += 35;
         }
 

@@ -1,9 +1,9 @@
-﻿using System.Drawing;
-using System.Timers;
+﻿using System.Timers;
 using Manganese.Text;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using OpenPetsWorld.PetTool;
+using SkiaSharp;
 using Sora.EventArgs.SoraEvent;
 using YukariToolBox.LightLog;
 using static OpenPetsWorld.Program;
@@ -55,7 +55,7 @@ namespace OpenPetsWorld
         /// <summary>
         /// 背景
         /// </summary>
-        public static Image Wallpaper = new Bitmap(650, 500);
+        public static SKBitmap Wallpaper = new SKBitmap(650, 500);
 
         public static GameConfig PlayConfig = new();
 
@@ -126,12 +126,13 @@ namespace OpenPetsWorld
             const string wallpaperPath = "./datapack/wallpaper.jpg";
             if (File.Exists(wallpaperPath))
             {
-                Wallpaper = Image.FromFile(wallpaperPath);
+                Wallpaper = SKBitmap.Decode(wallpaperPath);
             }
             else
             {
-                using var graphics = Graphics.FromImage(Wallpaper);
-                graphics.Clear(Color.White);
+                var canvas = new SKCanvas(Wallpaper);
+                canvas.Clear(SKColors.White);
+                canvas.Dispose();
             }
 
             #endregion
@@ -180,14 +181,14 @@ namespace OpenPetsWorld
 
             var dirs = Directory.GetDirectories(playerPath);
             var group = new Dictionary<long, Dictionary<long, Player>>();
-            
+
             foreach (var dir in dirs)
             {
                 var playersPath = dir + "/players.json";
-                
+
                 var groupIdText = Path.GetFileName(dir);
-                if (long.TryParse(groupIdText, out var groupId)) continue;
-                
+                if (!long.TryParse(groupIdText, out var groupId)) continue;
+
                 var localPlayers = TryRead<Dictionary<long, Player>>(playersPath);
                 if (localPlayers == null) continue;
 
@@ -214,13 +215,14 @@ namespace OpenPetsWorld
             #region 副本数据
 
             Log.Info("Reading", "读取副本数据中…");
-            const string replicaPath = "./datapack/replicas.json";
-            if (File.Exists(replicaPath))
+            const string instancesPath = "./datapack/instances.json";
+            if (File.Exists(instancesPath))
             {
-                var localInstance = TryRead<List<Instance>>(replicaPath);
+                var localInstance = TryRead<List<Instance>>(instancesPath);
                 if (localInstance != null)
                 {
                     Instances = localInstance;
+                    Cache.MaxInstanceIndex = (int)Math.Ceiling(localInstance.Count / 10D);
                 }
             }
 

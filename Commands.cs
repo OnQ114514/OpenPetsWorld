@@ -1,5 +1,5 @@
-using System.Drawing;
 using OpenPetsWorld.PetTool;
+using SkiaSharp;
 using Sora.Entities;
 using Sora.EventArgs.SoraEvent;
 using YukariToolBox.LightLog;
@@ -48,7 +48,7 @@ public static class Commands
             .Build();
     }
 
-    public static MessageBody? GachaTen(long groupId, long senderId)
+    public static MessageBody? GachaTen(long groupId, long senderId, string senderName)
     {
         if (Banner.Count == 0)
         {
@@ -76,33 +76,13 @@ public static class Commands
         for (var i = 0; i < 10; i++)
         {
             var pet = Pet.Gacha();
-            pets.Add(pet);
-
-            texts.Add($"[{i + 1}]{pet.Rank}-{pet.Name}");
         }
 
         player.GachaPets = pets;
 
-        #region 绘图
+        using var image = Renders.GachaTen(texts, senderName);
 
-        using Bitmap bitmap = new(480, 480);
-        using var graphics = Graphics.FromImage(bitmap);
-        using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
-
-        graphics.Clear(Color.White);
-        graphics.DrawString($"[@{senderId}]", font, Black, 3, 3);
-        graphics.DrawString("◇指令：选择+数字", font, Black, 3, 440);
-
-        var y = 40;
-        foreach (var text in texts)
-        {
-            graphics.DrawString(text, font, Black, 3, y);
-            y += 40;
-        }
-
-        #endregion
-
-        return builder.Image(bitmap).Build();
+        return builder.Image(image).Build();
     }
 
     public static MessageBody? Evolve(long groupId, long senderId)
@@ -346,7 +326,7 @@ public static class Commands
     /// <summary>
     /// 合成
     /// </summary>
-    public static void Make(GroupMessageEventArgs eventArgs)
+    public static async void Make(GroupMessageEventArgs eventArgs)
     {
         var senderId = eventArgs.Sender.Id;
         var context = eventArgs.Message;
@@ -370,8 +350,8 @@ public static class Commands
         if (!item.Make(eventArgs, count)) return;
 
         var path = $"./itemicon/{item.DescriptionImageName}.png";
-        var icon = Image.FromFile(path);
-        eventArgs.Reply(new MessageBodyBuilder()
+        var icon = SKBitmap.Decode(path);
+        await eventArgs.Reply(new MessageBodyBuilder()
             .Image(icon)
             .At(senderId)
             .Plain($" 合成成功了！恭喜你获得了道具·{itemName}*{count}")
