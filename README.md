@@ -3,7 +3,7 @@
 ![][banner]
 
 [![][actions]][actions-link]
-<!--[![][releases]][releases-link]-->
+[![][releases]][releases-link]
 [![][downloads]][releases-link]
 
 [![][license]](LICENSE)

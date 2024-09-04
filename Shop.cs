@@ -1,8 +1,8 @@
-using System.Drawing;
+using System.Diagnostics;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
+using SkiaSharp;
 using static OpenPetsWorld.Game;
-using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld;
 
@@ -11,44 +11,51 @@ public class Shop
     [JsonIgnore] private readonly int _pagesCount;
     public string Command = "";
     public string Name = "";
-    public Dictionary<string, int> Commodities = new();
+    public Dictionary<string, long> Commodities = new();
 
-    public int this[string i] => Commodities[i];
+    public long this[string i] => Commodities[i];
 
     public Shop()
     {
         _pagesCount = (int)Math.Ceiling((double)Commodities.Count / 10);
     }
 
-    public Bitmap Render(int count)
+    public SKImage Render(int count)
     {
-        var commList = Commodities.Select(commodity =>
-        {
-            var item = Items[commodity.Key];
-            int price = commodity.Value;
-            var type = item.ItemType.ToStr();
-            return $"[{type}]·{item.Name} {price}";
-        }).ToList().SafeGetRange(count - 1, 10);
+        var commList = Commodities.ToList()
+            .SafeGetRange(count - 1, 10)
+            .ConvertAll(commodity =>
+            {
+                var item = Items[commodity.Key];
+                var price = commodity.Value;
+                var type = item.ItemType.ToStr();
+                return $"[{type}]·{item.Name} {price}";
+            });
+        
+        using var surface = SKSurface.Create(new SKImageInfo(480, 600));
+        using var canvas = surface.Canvas;
 
-        Bitmap bitmap = new(480, 600);
-        using var graphics = Graphics.FromImage(bitmap);
-        using Font font = new("微软雅黑", 22);
-        using Pen pen = new(Color.Black, 3);
-        graphics.Clear(Color.White);
-        graphics.DrawString("宠物商店", font, Black, 10, 3);
-        graphics.DrawLine(pen, 135, 22, 480, 22);
-        graphics.DrawLine(pen, 0, 465, 275, 465);
-        graphics.DrawString($"页数：{count}/{_pagesCount}", font, Black, 280, 445);
-        graphics.DrawString($"◇指令：{Name}+页数", font, Black, 5, 480);
-        graphics.DrawString($"◇指令：{Command}+物品*数量", font, Black, 5, 520);
+        using var font = Tools.FontRegister(23);
+        using var paint = new SKPaint();
+        paint.StrokeWidth = 3;
+        paint.Color = SKColors.Black;
+        paint.IsAntialias = true;
 
-        int coord = 45;
+        canvas.Clear(SKColors.White);
+        canvas.DrawText("宠物商店", 10, 30, font, paint);
+        canvas.DrawLine(135, 30, 480, 30, paint);
+        canvas.DrawLine(0, 465, 275, 465, paint);
+        canvas.DrawText($"页数：{count}/{_pagesCount}", 280, 465, font, paint);
+        canvas.DrawText($"◇指令：{Name}+页数", 5, 510, font, paint);
+        canvas.DrawText($"◇指令：{Command}+物品*数量", 5, 550, font, paint);
+
+        var y = 80;
         foreach (var comm in commList)
         {
-            graphics.DrawString(comm, font, Black, 5, coord);
-            coord += 40;
+            canvas.DrawText(comm, 5, y, font, paint);
+            y += 40;
         }
 
-        return bitmap;
+        return surface.Snapshot();
     }
 }

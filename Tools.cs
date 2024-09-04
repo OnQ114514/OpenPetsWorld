@@ -1,6 +1,4 @@
-﻿using System.Drawing;
-using System.Drawing.Imaging;
-using System.Drawing.Text;
+﻿using SkiaSharp;
 using Sora.Entities;
 using Sora.EventArgs.SoraEvent;
 using static OpenPetsWorld.Program;
@@ -9,19 +7,19 @@ namespace OpenPetsWorld
 {
     internal static class Tools
     {
-        public static void ClearText(this Graphics v)
+        public static async Task SendAtMessage(this GroupMessageEventArgs x, string text)
         {
-            v.TextRenderingHint = TextRenderingHint.AntiAlias;
+            await x.Reply(new MessageBodyBuilder().At(x.Sender.Id).Plain($" {text}").Build());
         }
 
-        public static void SendAtMessage(this GroupMessageEventArgs x, string text)
+        public static async Task SendBmpMessage(this GroupMessageEventArgs x, SKImage image)
         {
-            x.Reply(new MessageBodyBuilder().At(x.Sender.Id).Plain($" {text}").Build());
+            await x.Reply(new MessageBodyBuilder().Image(image).Build());
         }
-
-        public static void SendBmpMessage(this GroupMessageEventArgs x, Image image)
+        
+        public static async Task SendBmpMessage(this GroupMessageEventArgs x, SKBitmap image)
         {
-            x.Reply(new MessageBodyBuilder().Image(image).Build());
+            await x.Reply(new MessageBodyBuilder().Image(image).Build());
         }
 
         public static List<T> SafeGetRange<T>(this List<T> list, int index, int count)
@@ -32,7 +30,7 @@ namespace OpenPetsWorld
             return rangeCount <= 0
                 ?
                 // 如果范围中的元素数小于等于0，则返回一个空列表
-                new List<T>()
+                []
                 : list.GetRange(index, rangeCount);
         }
 
@@ -153,13 +151,17 @@ namespace OpenPetsWorld
             }
         }
 
-        public static string ToBase64(Image bmp)
+        public static SKFont FontRegister(int size)
         {
-            using MemoryStream stream = new();
-            bmp.Save(stream, ImageFormat.Png);
-            var array = stream.ToArray();
-
-            return Convert.ToBase64String(array);
+            return FontRegister(size, SKFontStyle.Normal);
+        }
+        
+        public static SKFont FontRegister(int size, SKFontStyle style)
+        {
+            var typeface = FontStyleSet.CreateTypeface(style);
+            // SKFont和System.Drawing的Font的比例似乎不同，所以除以0.75
+            var font = new SKFont(typeface, size / 0.75F);
+            return font;
         }
     }
 }

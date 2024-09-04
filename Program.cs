@@ -1,10 +1,10 @@
-﻿using System.Drawing;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using Manganese.Text;
 using Newtonsoft.Json;
 using OpenPetsWorld.Data;
 using OpenPetsWorld.Item;
+using SkiaSharp;
 using Sora;
 using Sora.Entities;
 using Sora.Entities.Base;
@@ -22,11 +22,11 @@ namespace OpenPetsWorld;
 
 internal static class Program
 {
-    public static readonly Font YaHei = new("微软雅黑", 20, FontStyle.Regular);
-    public static readonly Brush Black = Brushes.Black;
+    public static SKFontStyleSet FontStyleSet;
     private static Config _config = new();
+    public static readonly Cache Cache = new();
 
-    private static readonly HttpClient HttpClient = new();
+    public static readonly HttpClient HttpClient = new();
     public static readonly Random Random = new();
     private static SoraApi? _soraApi;
 
@@ -91,6 +91,11 @@ internal static class Program
 
         #endregion Start
 
+        // 获取字体集合中的下标
+        var index = SKFontManager.Default.FontFamilies.ToList().IndexOf("微软雅黑");
+        // 创建字形
+        FontStyleSet = SKFontManager.Default.GetFontStyles(index);
+
         //写入配置文件
         if (!File.Exists(configPath)) WriteConfig();
 
@@ -143,7 +148,7 @@ internal static class Program
         if (textMessage == "开OPW" && HavePermissions(senderId) && notRunning)
         {
             _config.NotRunningGroup.Remove(groupId);
-            eventArgs.SendAtMessage($"本群已开启文字游戏OpenPetsWorld[本游戏完全开源]\n{_config.BootText}");
+            await eventArgs.SendAtMessage($"本群已开启文字游戏OpenPetsWorld[本游戏完全开源]\n{_config.BootText}");
         }
 
         if (notRunning) return;
@@ -158,7 +163,7 @@ internal static class Program
                 if (HavePermissions(senderId))
                 {
                     _config.NotRunningGroup.Add(groupId);
-                    eventArgs.SendAtMessage("已关闭OpenPetsWorld");
+                    await eventArgs.SendAtMessage("已关闭OpenPetsWorld");
                 }
 
                 break;
@@ -172,8 +177,8 @@ internal static class Program
                     Log.Warning("OnMessage", "菜单图片不存在");
                     break;
                 }
-
-                var image = Image.FromFile(menuPath);
+                
+                using var image = SKBitmap.Decode(menuPath);
 
                 await eventArgs.Reply(new MessageBodyBuilder().Image(image).Build());
                 break;
@@ -183,7 +188,7 @@ internal static class Program
                 if (HavePet(eventArgs, out var pet))
                 {
                     var image = pet.Render();
-                    eventArgs.SendBmpMessage(image);
+                    await eventArgs.SendBmpMessage(image);
                 }
 
                 break;
@@ -197,7 +202,7 @@ internal static class Program
             }
             case "砸蛋十连":
             {
-                var message = Commands.GachaTen(groupId, senderId);
+                var message = Commands.GachaTen(groupId, senderId, senderName);
                 if (message != null) await eventArgs.Reply(message);
 
                 break;
@@ -213,7 +218,7 @@ internal static class Program
 
                     var place = PlayConfig.Places[Random.Next(PlayConfig.Places.Length)];
 
-                    eventArgs.SendAtMessage(
+                    await eventArgs.SendAtMessage(
                         $"您的【{pet.Name}】正在{place}刻苦的修炼！\r\n" +
                         $"------------------\r\n" +
                         $"·修炼时间：+{PlayConfig.BreaksTime}秒\r\n" +
@@ -232,7 +237,7 @@ internal static class Program
                     if (!player.Activity(eventArgs, 10)) break;
                     var intellectAdd = Random.Next(PlayConfig.MinIqAdd, PlayConfig.MaxIqAdd);
                     pet.BaseIntellect += intellectAdd;
-                    eventArgs.SendAtMessage(
+                    await eventArgs.SendAtMessage(
                         $"您的【{pet.Name}】出门上学啦！\n------------------\n●学习耗时：+{PlayConfig.BreaksTime}秒\n●减少精力：-10点\n●获得智力：+{intellectAdd}\n------------------");
                 }
 
@@ -253,7 +258,7 @@ internal static class Program
                     else
                         pet.BaseDefense += addAttrNumber;
 
-                    eventArgs.SendAtMessage(
+                    await eventArgs.SendAtMessage(
                         $"您的【{pet.Name}】正在洗髓伐毛！\n------------------\n●洗髓耗时：+{PlayConfig.BreaksTime}秒\n●减少精力：-10点\n●减少智力：-1\n●增加{addAttText} ：+{addAttrNumber}\n------------------");
                 }
 
@@ -271,7 +276,7 @@ internal static class Program
                 {
                     var player = Player.Register(eventArgs);
                     var pet = player.Pet;
-                    eventArgs.SendAtMessage(pet.RemoveArtifact(eventArgs)
+                    await eventArgs.SendAtMessage(pet.RemoveArtifact(eventArgs)
                         ? $"卸下神器成功！没有神器的[{pet.Name}]显得很落寞呢！"
                         : "你的宠物还未佩戴神器！");
                 }
@@ -300,7 +305,7 @@ internal static class Program
                 {
                     var player = Player.Register(eventArgs);
                     var pet = player.Pet;
-                    eventArgs.SendAtMessage(
+                    await eventArgs.SendAtMessage(
                         $"危险操作\n（LV·{pet.Level}-{pet.Rank}-{pet.Name}）\n将被放生，请在1分钟内回复：\n【确定放生】");
                     player.SentFreeUnixTime = GetNowUnixTime();
                 }
@@ -313,7 +318,7 @@ internal static class Program
                 {
                     player.SentFreeUnixTime = 0;
                     player.Pet = null;
-                    eventArgs.SendAtMessage("成功放生宠物,您的宠物屁颠屁颠的走了!");
+                    await eventArgs.SendAtMessage("成功放生宠物,您的宠物屁颠屁颠的走了!");
                 }
 
                 break;
@@ -322,10 +327,10 @@ internal static class Program
             {
                 var player = Player.Register(eventArgs);
                 var todayUnixTime = DateTime.Now.Date.ToUnixTime();
-                if (todayUnixTime - player.LastSignedUnixTime <= 86400)
+                //if (todayUnixTime - player.LastSignedUnixTime <= 86400)
                 {
-                    eventArgs.SendAtMessage("今天已签到过了,明天再来吧!");
-                    break;
+                    //await eventArgs.SendAtMessage("今天已签到过了,明天再来吧!");
+                    //break;
                 }
 
                 if (todayUnixTime - player.LastSignedUnixTime >= 172800 && player.LastSignedUnixTime != 0)
@@ -338,93 +343,39 @@ internal static class Program
                 var points = 2200 + player.SignedDays * 50;
                 player.Points += points;
 
-                #region 绘图
-
-                var stream =
-                    await HttpClient.GetStreamAsync($"https://q2.qlogo.cn/headimg_dl?dst_uin={senderId}&spec=100");
-                using Bitmap image = new(230, 90);
-                using var graphics = Graphics.FromImage(image);
-                graphics.Clear(Color.White);
-                graphics.DrawImage(Image.FromStream(stream), new Rectangle(0, 0, 90, 90));
-                stream.Close();
-                graphics.ClearText();
-                graphics.DrawString(senderName, new Font("微软雅黑", 15, FontStyle.Bold),
-                    Brushes.Black, new Point(95, 5));
-                using Font font = new("微软雅黑", 13, FontStyle.Regular);
-                string[] signTexts =
-                [
-                    $"奖励积分：{points}",
-                    $"累签天数：{player.SignedDays}",
-                    $"连签天数：{player.ContinuousSignedDays}/31"
-                ];
-                var n = 30;
-                foreach (var text in signTexts)
-                {
-                    graphics.DrawString(text, font, Brushes.Black, new Point(92, n));
-                    n += 18;
-                }
-
-                #endregion 绘图
-
-                eventArgs.SendBmpMessage(image);
+                using var image = await Renders.SignRender(points, player.SignedDays, player.ContinuousSignedDays, senderName, senderId);
+                await eventArgs.SendBmpMessage(image);
                 break;
             }
             case "我的资产":
             {
                 var player = Player.Register(eventArgs);
-                using Bitmap bitmap = new(480, 235);
-                using var graphics = Graphics.FromImage(bitmap);
-                using Font font = new("Microsoft YaHei", 23, FontStyle.Bold);
-                graphics.Clear(Color.White);
-                graphics.DrawString($"@{senderName} 财富信息如下：", font, Black, 2, 2);
-                graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 55), new Point(480, 55));
-                graphics.DrawString($"●积分：{player.Points}", font, Black, 0, 65);
-                graphics.DrawString($"●点券：{player.Bonds}", font, Black, 0, 125);
-                graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 180), new Point(480, 180));
-                eventArgs.SendBmpMessage(bitmap);
+                
+                using var image = Renders.AssetRender(player.Points, player.Bonds, senderName);
+                await eventArgs.SendBmpMessage(image);
                 break;
             }
             case "我的背包":
             {
                 var player = Player.Register(eventArgs);
-                List<string> bagItemList = [];
+                List<string> items = [];
                 foreach (var (name, count) in player.Bag)
                 {
                     var item = Items[name];
                     var type = item.ItemType.ToStr();
 
-                    if (count != 0) bagItemList.Add($"●[{type}]:{name}⨉{count}");
+                    if (count != 0) items.Add($"●[{type}]:{name}×{count}");
                 }
 
-                if (bagItemList.Count == 0)
+                if (items.Count == 0)
                 {
-                    eventArgs.SendAtMessage("您的背包里面空空如也哦！");
+                    await eventArgs.SendAtMessage("您的背包里面空空如也哦！");
                     break;
                 }
 
-                #region 绘图
-
-                var height = bagItemList.Count * 38 + 110;
-                using Bitmap imageData = new(480, height);
-                using var graphics = Graphics.FromImage(imageData);
-                using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
-
-                graphics.Clear(Color.White);
-                graphics.DrawString($"[@{senderId}]您的背包：", font, Black, 2, 2);
-                graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, 55), new Point(480, 55));
-
-                var i = 65;
-                foreach (var itemStr in bagItemList)
-                {
-                    graphics.DrawString(itemStr, font, Black, 0, i);
-                    i += 38;
-                }
-
-                graphics.DrawLine(new Pen(Color.Black, 3), new Point(0, height - 30), new Point(480, height - 30));
-                eventArgs.SendBmpMessage(imageData);
-
-                #endregion 绘图
-
+                using var image = Renders.BagRender(items, senderName); 
+                await eventArgs.SendBmpMessage(image);
+                
                 break;
             }
 #if DEBUG
@@ -470,13 +421,13 @@ internal static class Program
 
                     if (count != -1 && count == 0)
                     {
-                        eventArgs.SendAtMessage("格式错误！");
+                        await eventArgs.SendAtMessage("格式错误！");
                         break;
                     }
 
                     if (!Items.TryGetValue(itemName, out var item))
                     {
-                        eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
+                        await eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
                         break;
                     }
 
@@ -493,7 +444,7 @@ internal static class Program
                         }
                         else
                         {
-                            eventArgs.SendAtMessage("对方未注册，无法奖励！");
+                            await eventArgs.SendAtMessage("对方未注册，无法奖励！");
                             break;
                         }
                     }
@@ -506,13 +457,13 @@ internal static class Program
 
                     if (count != -1 && count == 0)
                     {
-                        eventArgs.SendAtMessage("格式错误！");
+                        await eventArgs.SendAtMessage("格式错误！");
                         break;
                     }
 
                     if (!Items.TryGetValue(itemName, out var item))
                     {
-                        eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
+                        await eventArgs.SendAtMessage("该道具并不存在，请检查是否输错！");
                         break;
                     }
 
@@ -534,7 +485,7 @@ internal static class Program
                             succeedCount++;
                         }
 
-                        eventArgs.SendAtMessage($"扣除完毕\n成功数：{succeedCount}\n失败数：{failCount}");
+                        await eventArgs.SendAtMessage($"扣除完毕\n成功数：{succeedCount}\n失败数：{failCount}");
                         break;
                     }
 
@@ -545,7 +496,7 @@ internal static class Program
                         }
                         else
                         {
-                            eventArgs.SendAtMessage("对方未注册，无法扣除！");
+                            await eventArgs.SendAtMessage("对方未注册，无法扣除！");
                             break;
                         }
                     }
@@ -558,7 +509,7 @@ internal static class Program
                     if (targetId == null) return;
 
                     _config.UserBlackList.Add(targetId.Value);
-                    eventArgs.SendAtMessage($"已拉黑 {targetId}");
+                    await eventArgs.SendAtMessage($"已拉黑 {targetId}");
                 }
                 else if (textMessage.StartsWith("解除拉黑") && HavePermissions(senderId))
                 {
@@ -567,11 +518,11 @@ internal static class Program
 
                     if (!_config.UserBlackList.Remove(targetId.Value))
                     {
-                        eventArgs.SendAtMessage($"{targetId} 并未被拉黑");
+                        await eventArgs.SendAtMessage($"{targetId} 并未被拉黑");
                         return;
                     }
 
-                    eventArgs.SendAtMessage($"已解除拉黑 {targetId}");
+                    await eventArgs.SendAtMessage($"已解除拉黑 {targetId}");
                 }
                 else if (textMessage.StartsWith("移除管理") && senderId == _config.MasterId)
                 {
@@ -580,11 +531,11 @@ internal static class Program
 
                     if (!_config.Admins.Remove(targetId.Value))
                     {
-                        eventArgs.SendAtMessage($"{targetId} 并不是管理");
+                        await eventArgs.SendAtMessage($"{targetId} 并不是管理");
                         return;
                     }
 
-                    eventArgs.SendAtMessage($"已移除管理 {targetId}");
+                    await eventArgs.SendAtMessage($"已移除管理 {targetId}");
                 }
                 else if (textMessage.StartsWith("添加管理") && senderId == _config.MasterId)
                 {
@@ -592,7 +543,7 @@ internal static class Program
                     if (targetId == null) return;
 
                     _config.Admins.Add(targetId.Value);
-                    eventArgs.SendAtMessage($"已添加管理 {targetId}");
+                    await eventArgs.SendAtMessage($"已添加管理 {targetId}");
                 }
                 else if (textMessage.StartsWith("选择"))
                 {
@@ -605,7 +556,7 @@ internal static class Program
 
                     if (player.Pet != null)
                     {
-                        eventArgs.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
+                        await eventArgs.SendAtMessage("您已经有宠物了,贪多嚼不烂哦!\n◇指令:宠物放生");
                         break;
                     }
 
@@ -628,21 +579,21 @@ internal static class Program
 
                     if (count > 99999)
                     {
-                        eventArgs.SendAtMessage("数量超出范围！");
+                        await eventArgs.SendAtMessage("数量超出范围！");
                         break;
                     }
 
                     if (count < 0) count = 1;
 
                     using var bitmap = PointShop.Render(count);
-                    eventArgs.SendBmpMessage(bitmap);
+                    await eventArgs.SendBmpMessage(bitmap);
                 }
                 else if (textMessage.StartsWith("查看"))
                 {
                     var itemName = textMessage[2..];
                     if (!Items.TryGetValue(itemName, out var item))
                     {
-                        eventArgs.SendAtMessage("此物品不存在，或者输入错误！");
+                        await eventArgs.SendAtMessage("此物品不存在，或者输入错误！");
                         break;
                     }
 
@@ -650,7 +601,7 @@ internal static class Program
 
                     if (item.DescriptionImageName != null)
                     {
-                        var image = Image.FromFile($"./datapack/itemicon/{item.DescriptionImageName}.png");
+                        var image = SKBitmap.Decode($"./datapack/itemicon/{item.DescriptionImageName}.png");
                         builder.Image(image);
                     }
 
@@ -675,14 +626,14 @@ internal static class Program
                     Tools.ParseString(context, 2, out var giftName, out _, out _);
                     if (textMessage.Length < 3)
                     {
-                        eventArgs.SendAtMessage("◇指令:领取+礼包名");
+                        await eventArgs.SendAtMessage("◇指令:领取+礼包名");
                         break;
                     }
 
                     var gift = FindGift(giftName);
                     if (gift == null)
                     {
-                        eventArgs.SendAtMessage("此礼包不存在，或者输入错误！");
+                        await eventArgs.SendAtMessage("此礼包不存在，或者输入错误！");
                         break;
                     }
 
@@ -690,7 +641,7 @@ internal static class Program
 
                     if (player.ClaimedGifts.Contains(gift.Id))
                     {
-                        eventArgs.SendAtMessage("你已领取过该礼包，不可重复领取");
+                        await eventArgs.SendAtMessage("你已领取过该礼包，不可重复领取");
                         break;
                     }
 
@@ -705,67 +656,43 @@ internal static class Program
 
                     player.ClaimedGifts.Add(gift.Id);
 
-                    eventArgs.SendAtMessage("领取成功\n" + string.Join("\n", message));
+                    await eventArgs.SendAtMessage("领取成功\n" + string.Join("\n", message));
                 }
                 else if (textMessage.StartsWith("宠物副本"))
                 {
                     var index = textMessage[4..].GetCount("");
                     if (index == -1) index = 0;
 
-                    var replicasString =
-                        Instances.ConvertAll(replica => $"● {replica.Name} LV > {replica.Level}");
+                    var instances = Instances
+                        .ConvertAll(instance => $"● {instance.Name} LV > {instance.Level}")
+                        .SafeGetRange(index, 10);
 
-                    #region 绘图
-
-                    using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
-                    using Bitmap bitmap = new(480, 640);
-                    using var graphics = Graphics.FromImage(bitmap);
-                    using Pen pen = new(Color.Black, 3);
-                    graphics.Clear(Color.White);
-                    graphics.DrawString("当前开放副本如下：", font, Brushes.Black, 5, 5);
-                    graphics.DrawLine(pen, 0, 60, 480, 60);
-                    graphics.DrawLine(pen, 0, 498, 235, 498);
-
-                    #endregion
-
-                    var n = 60;
-                    foreach (var text in replicasString.SafeGetRange(index, 10))
-                        graphics.DrawString(text, font, Brushes.Black, 0, n);
-
-                    eventArgs.SendBmpMessage(bitmap);
+                    using var image = Renders.InstanceListRender(instances, index + 1, Cache.MaxInstanceIndex);
+                    await eventArgs.SendBmpMessage(image);
                 }
                 else if (textMessage.StartsWith("进入副本"))
                 {
-                    Tools.ParseString(context, 4, out var replicaName, out var count, out _);
-                    var replica = FindReplica(replicaName);
-                    if (replica == null || !HavePet(eventArgs)) break;
-
-                    var player = Player.Register(eventArgs);
+                    Tools.ParseString(context, 4, out var instanceName, out var count, out _);
+                    var instance = FindReplica(instanceName);
                     if (!HavePet(eventArgs, out var pet)) break;
 
-                    _ = replica.Challenge(player, count, out var expAdd, out var pointAdd);
+                    if (instance == null)
+                    {
+                        await eventArgs.SendAtMessage("此副本不存在,或副本名称错误!\n◇指令:进入副本+副本名*次数");
+                        break;
+                    }
+                    
+                    var player = Player.Register(eventArgs);
+                    var result = instance.Challenge(player, count);
 
-                    #region 绘图
-
-                    using Bitmap bitmap = new(600, 205);
-                    using var graphics = Graphics.FromImage(bitmap);
-                    using Font font = new("Microsoft YaHei", 23, FontStyle.Regular);
-                    graphics.Clear(Color.White);
-                    graphics.DrawString($"【{pet.Name} VS {replica.enemyName}】", font, Brushes.Black, 180,
-                        15);
-                    graphics.DrawString($"◆战斗结果：胜利\n◆获得经验：{expAdd}\n◆获得积分：{pointAdd}", font, Brushes.Black, 15, 55);
-                    graphics.DrawString(
-                        $"◆消耗精力：{replica.Energy * count}\n◆血量减少：{replica.Attack * count}\n◆获得积分：{(player.Pet.Health == 0 ? "死亡" : "正常")}",
-                        font, Brushes.Black, 305, 55);
-
-                    #endregion
+                    using var image = Renders.InstanceRender(pet.Name, instance.EnemyName, result);
 
                     MessageBodyBuilder builder = new();
-                    builder.Image(bitmap);
-                    if (replica.IconName != null)
+                    builder.Image(image);
+                    if (instance.IconName != null)
                     {
-                        var path = $"./datapack/replicaicon/{replica.IconName}.png";
-                        var icon = Image.FromFile(path);
+                        var path = $"./datapack/replicaicon/{instance.IconName}.png";
+                        var icon = SKBitmap.Decode(path);
                         builder.Image(icon);
                     }
 
@@ -787,14 +714,14 @@ internal static class Program
                     if (pet.Energy < energy)
                     {
                         //TODO:支持自定义
-                        eventArgs.SendAtMessage($"你的宠物已经精疲力竭了，侦察宠物需要消化{energy}点精力！当前精力剩余{pet.Energy}");
+                        await eventArgs.SendAtMessage($"你的宠物已经精疲力竭了，侦察宠物需要消化{energy}点精力！当前精力剩余{pet.Energy}");
                         return;
                     }
 
                     var targetPlayer = Player.Register(groupId, target.Value);
                     if (targetPlayer.Pet == null)
                     {
-                        eventArgs.SendAtMessage("对方还未拥有宠物，无法进行侦查宠物！");
+                        await eventArgs.SendAtMessage("对方还未拥有宠物，无法进行侦查宠物！");
                         return;
                     }
 
