@@ -60,6 +60,11 @@ public class Config
     public string Host = "127.0.0.1";
 
     /// <summary>
+    /// 渲染字体
+    /// </summary>
+    public string Font = "微软雅黑";
+    
+    /// <summary>
     /// 配置是否被更改
     /// </summary>
     [JsonIgnore] public bool Changed = false;

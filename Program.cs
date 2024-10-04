@@ -92,7 +92,7 @@ internal static class Program
         #endregion Start
 
         // 获取字体集合中的下标
-        var index = SKFontManager.Default.FontFamilies.ToList().IndexOf("微软雅黑");
+        var index = SKFontManager.Default.FontFamilies.ToList().IndexOf(_config.Font);
         // 创建字形
         FontStyleSet = SKFontManager.Default.GetFontStyles(index);
 
@@ -156,7 +156,7 @@ internal static class Program
         switch (textMessage)
         {
             case "OpenPetsWorld":
-                await eventArgs.Reply("由 OpenPetsWorld Pre.3 核能驱动！");
+                await eventArgs.Reply("由 OpenPetsWorld 核能驱动！");
                 break;
 
             case "关OPW":
@@ -845,6 +845,7 @@ internal static class Program
 
     public static long GetLevelUpExp(int level)
     {
+        
         return 5 * Pow(level, 3) + 15 * Pow(level, 2) + 40 * level + 100;
     }
 

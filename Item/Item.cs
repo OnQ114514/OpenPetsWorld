@@ -182,6 +182,7 @@ public class Artifact : BaseItem
             $"● 神器名称：{Name}",
             $"● 佩戴等级：LV·{Level}"
         ];
+        
         if (Health != 0) message.Add($"● 生命提升{Health.ToSignedString()}");
         if (Attack != 0) message.Add($"● 攻击提升{Attack.ToSignedString()}");
         if (Defense != 0) message.Add($"● 防御提升{Defense.ToSignedString()}");
@@ -197,11 +198,8 @@ public class Artifact : BaseItem
 /// </summary>
 public class Resurrection : BaseItem
 {
-    /// <summary>
-    /// 0为回复至某值，1为回复到上限的百分之几，2回满
-    /// </summary>
-    public int Mode = 0;
-
+    public long Energy = 0;
+    public long Mood = 0;
     public double Health = 0;
 
     public Resurrection()
@@ -212,33 +210,33 @@ public class Resurrection : BaseItem
     public override bool Use(GroupMessageEventArgs receiver, int count)
     {
         if (!base.Use(receiver, count)) return false;
-        var petData = Player.Register(receiver).Pet;
-        if (petData.Health != 0) return true;
-
-        long resHealth;
-        switch (Mode)
+        var pet = Player.Register(receiver).Pet;
+        if (pet.Health != 0)
         {
-            case 0:
-                resHealth = petData.Health =
-                    ((long)(petData.MaxHealth < Health
-                        ? petData.MaxHealth
-                        : Health) * count);
-                petData.RectOverflow();
-                break;
-            case 1:
-                resHealth = petData.Health = (int)Math.Round(petData.MaxHealth * Health * count);
-                petData.RectOverflow();
-                break;
-            case 2:
-                resHealth = petData.Health = petData.MaxHealth;
-                break;
-            default:
-                Log.Error("ItemUse", $"恢复模式异常，模式为{Mode}，物品名为{Name}");
-                return false;
+            receiver.SendAtMessage("你的宠物没有死亡，无需复活！");
+            return false;
         }
 
-        receiver.SendAtMessage($"成功使用【{Name}】×1，将宠物成功复活!\n◇回复血量：{resHealth}");
+        var builder = new MessageBodyBuilder();
+        builder
+            .At(receiver.Sender.Id)
+            .Plain($" 成功使用【{Name}】×{count}，将宠物成功复活！\n");
 
+        var resHealth = Recovery.GetRecoveryValue(Health * count, ref pet.Health, pet.MaxHealth);
+        var resEnergy = Recovery.GetRecoveryValue(Energy * count, ref pet.Energy, pet.MaxEnergy);
+        var resMood = Recovery.GetRecoveryValue(Mood * count, ref pet.Mood, PlayConfig.MaxMood);
+
+        if (resHealth != 0) builder.Plain($"◇回复血量：{resHealth}\n");
+        if (resEnergy != 0) builder.Plain($"◇回复精力：{resEnergy}\n");
+        if (resMood != 0) builder.Plain($"◇回复心情：{resMood}\n");
+
+        if (resHealth == 0 && resEnergy == 0 && resMood == 0)
+        {
+            receiver.SendAtMessage("你的宠物当前不需要恢复！");
+            return false;
+        }
+
+        receiver.Reply(builder.Build());
         return true;
     }
 }
@@ -248,12 +246,10 @@ public class Resurrection : BaseItem
 /// </summary>
 public class Recovery : BaseItem
 {
+    // x>=1增加，0<x<1为增加到上限的百分之几，x=-1回满
+    public long Energy = 0;
+    public long Mood = 0;
     public double Health = 0;
-
-    /// <summary>
-    /// 0增加，1为增加到上限的百分之几，2回满
-    /// </summary>
-    public int Mode = 0;
 
     public Recovery()
     {
@@ -270,37 +266,48 @@ public class Recovery : BaseItem
             return false;
         }
 
-        if (pet.Health < pet.MaxHealth)
-        {
-            var originHealth = pet.Health;
-            long resHealth;
-            switch (Mode)
-            {
-                case 0:
-                    pet.Health += (long)Health * count;
-                    pet.RectOverflow();
-                    resHealth = pet.Health - originHealth;
-                    break;
-                case 1:
-                    pet.Health += (long)Math.Round(pet.MaxHealth * Health) * count;
-                    resHealth = pet.Health - originHealth;
-                    break;
-                case 2:
-                    pet.Health = pet.MaxHealth;
-                    resHealth = pet.MaxHealth - originHealth;
-                    count = 1;
-                    break;
-                default:
-                    Log.Error("ItemUse", $"恢复模式异常，模式为{Mode}，物品名为{Name}");
-                    return false;
-            }
+        var builder = new MessageBodyBuilder();
+        builder
+            .At(receiver.Sender.Id)
+            .Plain($" 成功使用【{Name}】×{count}，触发以下效果：\n");
 
-            receiver.SendAtMessage($"成功使用【{Name}】×{count}，将宠物成功复活!\n◇回复血量：{resHealth}");
-            return true;
+        var recHealth = GetRecoveryValue(Health * count, ref pet.Health, pet.MaxHealth);
+        var recEnergy = GetRecoveryValue(Energy * count, ref pet.Energy, pet.MaxEnergy);
+        var recMood = GetRecoveryValue(Mood * count, ref pet.Mood, PlayConfig.MaxMood);
+
+        if (recHealth != 0) builder.Plain($"◇回复血量：{recHealth}\n");
+        if (recEnergy != 0) builder.Plain($"◇回复精力：{recEnergy}\n");
+        if (recMood != 0) builder.Plain($"◇回复心情：{recMood}\n");
+
+        if (recHealth == 0 && recEnergy == 0 && recMood == 0)
+        {
+            receiver.SendAtMessage("你的宠物当前不需要恢复！");
+            return false;
         }
 
-        receiver.SendAtMessage("你的宠物当前不需要恢复生命！");
-        return false;
+        receiver.Reply(builder.Build());
+        return true;
+    }
+
+    internal static long GetRecoveryValue(double value, ref long currentValue, long maxValue)
+    {
+        var originValue = currentValue;
+
+        switch (value)
+        {
+            case >= 1:
+                currentValue += (long)value;
+                break;
+            case > 0 and < 1:
+                currentValue += (long)Math.Round(maxValue * value);
+                break;
+            case -1:
+                currentValue = maxValue;
+                break;
+        }
+
+        currentValue = Math.Min(currentValue, maxValue);
+        return currentValue - originValue;
     }
 }
 

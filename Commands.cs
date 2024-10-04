@@ -148,6 +148,7 @@ public static class Commands
             // 检查是否有足够的经验升级
             if (allExp + expNeeded > pet.Experience) break;
 
+            nextExpNeeded = expNeeded;
             allHealth += 2 * Pow(currentLevel, 2) + 4 * currentLevel + 10;
             allAttribute += 3 * currentLevel + 1;
             currentLevel++;
@@ -159,12 +160,6 @@ public static class Commands
         {
             text = $"您的宠物经验不足,无法升级,升级到[Lv·{pet.Level + 1}]级还需要[{pet.MaxExperience - pet.Experience}]经验值!";
             goto Send;
-        }
-
-        // 确保不会扣除超过当前经验的值
-        if (pet.Experience < allExp)
-        {
-            allExp = pet.Experience;
         }
 
         pet.Level = currentLevel;

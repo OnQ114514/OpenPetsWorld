@@ -1,10 +1,8 @@
-using System.Drawing;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using SkiaSharp;
 using Sora.EventArgs.SoraEvent;
 using static OpenPetsWorld.Game;
-using static OpenPetsWorld.Program;
 
 namespace OpenPetsWorld.PetTool;
 
@@ -50,24 +48,24 @@ public class Pet
     {
         get
         {
-            if (_humanoid)
+            if (Humanoid)
             {
-                return _gender ? "男" : "女";
+                return BoolGender ? "男" : "女";
             }
 
-            return _gender ? "雄" : "雌";
+            return BoolGender ? "雄" : "雌";
         }
     }
 
     /// <summary>
     /// 实际性别
     /// </summary>
-    private bool _gender;
+    internal bool BoolGender;
 
     /// <summary>
     /// 是否显示为人的性别
     /// </summary>
-    private bool _humanoid;
+    internal bool Humanoid;
 
     public Stage Stage = Stage.Infancy;
     public string Attribute;
@@ -80,7 +78,7 @@ public class Pet
     public string PetTalent = "无";
 
     public Artifact Artifact = Artifact.Null;
-    public int Mood = 50;
+    public long Mood = 50;
     public List<Morphology>? Morphologies;
 
     [JsonIgnore] public long Power => (Attack + Defense + MaxHealth) / 10 + Intellect * 20;
@@ -108,6 +106,18 @@ public class Pet
         {
             Health = 0;
         }
+
+        if (Energy > MaxEnergy)
+        {
+            Energy = MaxHealth;
+        }
+
+        if (Energy < 0)
+        {
+            Energy = 0;
+        }
+        
+        //if (Mood > )
     }
 
     /// <summary>
