@@ -18,6 +18,7 @@ public class GameConfig
     public int MaxExpAdd;
     public int MinExpAdd;
 
+    public int MaxMood = 50; 
     public int MaxLevel = 300;
 
     /// <summary>
