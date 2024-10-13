@@ -17,6 +17,7 @@
   <ItemGroup>
     <PackageReference Include="Manganese" Version="1.3.2" />
     <PackageReference Include="SkiaSharp" Version="3.0.0-preview.4.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.0.0-preview.4.1" />
     <PackageReference Include="Sora" Version="1.4.3" />
   </ItemGroup>
 

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using Manganese.Text;
 using Newtonsoft.Json;
@@ -91,13 +92,28 @@ internal static class Program
 
         #endregion Start
 
-        // 获取字体集合中的下标
-        var index = SKFontManager.Default.FontFamilies.ToList().IndexOf(_config.Font);
-        // 创建字形
-        FontStyleSet = SKFontManager.Default.GetFontStyles(index);
-
         //写入配置文件
         if (!File.Exists(configPath)) WriteConfig();
+
+        // 获取字体集合
+        var families = SKFontManager.Default.FontFamilies.ToList();
+        // 获取下标
+        var index = families.FindIndex(font => font == _config.Font);
+        if (index != -1)
+        {
+            // 创建字形
+            FontStyleSet = SKFontManager.Default.GetFontStyles(index);
+        }
+        else
+        {
+            Log.Error("Main", $"字体 {_config.Font} 不存在！您可尝试更改 {configPath} 里的Font项为已安装字体，或安装 {_config.Font}");
+            Console.Write($"是否打开 {configPath} ？(y/N)");
+            var result = Console.ReadLine(); 
+            if (!result.IsNullOrEmpty() && result.Equals("y", StringComparison.CurrentCultureIgnoreCase))
+            {
+                Process.Start(configPath);
+            }
+        }
 
         ReadData();
 
@@ -177,7 +193,7 @@ internal static class Program
                     Log.Warning("OnMessage", "菜单图片不存在");
                     break;
                 }
-                
+
                 using var image = SKBitmap.Decode(menuPath);
 
                 await eventArgs.Reply(new MessageBodyBuilder().Image(image).Build());
@@ -343,14 +359,15 @@ internal static class Program
                 var points = 2200 + player.SignedDays * 50;
                 player.Points += points;
 
-                using var image = await Renders.SignRender(points, player.SignedDays, player.ContinuousSignedDays, senderName, senderId);
+                using var image = await Renders.SignRender(points, player.SignedDays, player.ContinuousSignedDays,
+                    senderName, senderId);
                 await eventArgs.SendBmpMessage(image);
                 break;
             }
             case "我的资产":
             {
                 var player = Player.Register(eventArgs);
-                
+
                 using var image = Renders.AssetRender(player.Points, player.Bonds, senderName);
                 await eventArgs.SendBmpMessage(image);
                 break;
@@ -373,9 +390,9 @@ internal static class Program
                     break;
                 }
 
-                using var image = Renders.BagRender(items, senderName); 
+                using var image = Renders.BagRender(items, senderName);
                 await eventArgs.SendBmpMessage(image);
-                
+
                 break;
             }
 #if DEBUG
@@ -681,7 +698,7 @@ internal static class Program
                         await eventArgs.SendAtMessage("此副本不存在,或副本名称错误!\n◇指令:进入副本+副本名*次数");
                         break;
                     }
-                    
+
                     var player = Player.Register(eventArgs);
                     var result = instance.Challenge(player, count);
 
@@ -845,7 +862,6 @@ internal static class Program
 
     public static long GetLevelUpExp(int level)
     {
-        
         return 5 * Pow(level, 3) + 15 * Pow(level, 2) + 40 * level + 100;
     }
 

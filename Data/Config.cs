@@ -62,7 +62,7 @@ public class Config
     /// <summary>
     /// 渲染字体
     /// </summary>
-    public string Font = "微软雅黑";
+    public string Font = "Microsoft YaHei UI";
     
     /// <summary>
     /// 配置是否被更改
