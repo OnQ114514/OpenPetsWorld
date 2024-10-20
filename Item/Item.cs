@@ -1,7 +1,6 @@
 using Newtonsoft.Json;
 using OpenPetsWorld.PetTool;
 using Sora.EventArgs.SoraEvent;
-using YukariToolBox.LightLog;
 using static OpenPetsWorld.Game;
 
 namespace OpenPetsWorld.Item;
@@ -52,7 +51,7 @@ public class BaseItem
     public Formulation? Formulation;
 
     /// <summary>
-    /// 可交易
+    /// 是否可交易
     /// </summary>
     public bool CanTrade = true;
 
@@ -60,6 +59,19 @@ public class BaseItem
     /// 出售价格
     /// </summary>
     public long? Price = null;
+
+    /// <summary>
+    /// 是否可对他人使用
+    /// </summary>
+    public bool CanUseToOther = false;
+
+    public virtual bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    {
+        if (CanUseToOther) return true;
+        
+        eventArgs.SendAtMessage("无法对其使用此类道具！");
+        return false;
+    }
 
     public virtual bool Use(GroupMessageEventArgs eventArgs, int count)
     {
@@ -239,6 +251,13 @@ public class Resurrection : BaseItem
         receiver.Reply(builder.Build());
         return true;
     }
+
+    public override bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    {
+        if (!base.UseToOther(eventArgs, count, target)) return false;
+
+        return true;
+    }
 }
 
 /// <summary>
@@ -286,6 +305,13 @@ public class Recovery : BaseItem
         }
 
         receiver.Reply(builder.Build());
+        return true;
+    }
+    
+    public override bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    {
+        if (!base.UseToOther(eventArgs, count, target)) return false;
+        
         return true;
     }
 
@@ -358,6 +384,13 @@ public class Gain : BaseItem
         receiver.SendAtMessage(string.Join("\n", message));
         return true;
     }
+    
+    public override bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    {
+        if (!base.UseToOther(eventArgs, count, target)) return false;
+        
+        return true;
+    }
 }
 
 /// <summary>
@@ -379,4 +412,5 @@ public class PetItem : BaseItem
 
 public class Clear : BaseItem
 {
+    
 }

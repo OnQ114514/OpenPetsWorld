@@ -1,3 +1,4 @@
+using System.Data;
 using Newtonsoft.Json;
 using OpenPetsWorld.Item;
 using SkiaSharp;
@@ -71,9 +72,8 @@ public class Pet
     public string Attribute;
 
     public string Rank;
-
-    //TODO:完善状态
-    public string State = "正常";
+    
+    public List<State> States = [];
     public string? IconName;
     public string PetTalent = "无";
 
@@ -116,7 +116,7 @@ public class Pet
         {
             Energy = 0;
         }
-        
+
         //if (Mood > )
     }
 
@@ -134,7 +134,7 @@ public class Pet
             return -1;
         }
 
-        int target = (int)Stage;
+        var target = (int)Stage;
         if (Morphologies.Count - 1 < target)
         {
             //已是最终形态
@@ -228,7 +228,7 @@ public class Pet
             $"阶段:{Stage.ToStr()}",
             $"属性:{Attribute}",
             $"级别:{Rank}",
-            $"状态:{State}",
+            $"状态:{States.ToStr()}",
             $"神器:{Artifact.Name}",
             $"天赋:{PetTalent}",
             $"战力:{Power.ToFormat()}",

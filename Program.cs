@@ -944,7 +944,7 @@ internal static class Program
                 ThrowCommandException = false,
                 SendCommandErrMsg = false,
                 CommandExceptionHandle = CommandExceptionHandle,
-                HeartBeatTimeOut = TimeSpan.FromSeconds(32.0),
+                HeartBeatTimeOut = _config.HeartBeatTimeOut,
                 Host = host,
                 Port = _config.Port
             };
@@ -958,7 +958,8 @@ internal static class Program
             SendCommandErrMsg = false,
             CommandExceptionHandle = CommandExceptionHandle,
             Host = _config.Host,
-            Port = _config.Port
+            Port = _config.Port,
+            HeartBeatTimeOut = _config.HeartBeatTimeOut
         };
     }
 
@@ -1007,7 +1008,7 @@ internal static class Program
         if (!reverse) return;
         Console.Write("是否公开至局域网(y/N):");
         var lanPublic = Console.ReadLine();
-        if (!lanPublic.IsNullOrEmpty() && lanPublic.ToLower() == "y")
+        if (!lanPublic.IsNullOrEmpty() && lanPublic.Equals("y", StringComparison.CurrentCultureIgnoreCase))
         {
             _config.LanPublic = true;
         }

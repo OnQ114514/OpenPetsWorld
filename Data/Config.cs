@@ -37,10 +37,10 @@ public class Config
     /// <summary>
     /// 启动文字（开OPW）
     /// </summary>
-    public string BootText = "TAKE OFF TOWARD THE DREAM";
+    public readonly string BootText = "TAKE OFF TOWARD THE DREAM";
 
     /// <summary>
-    /// 公开至局域网（默认关闭）
+    /// 公开至局域网
     /// </summary>
     public bool LanPublic = false;
 
@@ -58,6 +58,12 @@ public class Config
     /// 正向Websocket连接地址
     /// </summary>
     public string Host = "127.0.0.1";
+
+    /// <summary>
+    /// Websocket心跳包超时时间
+    /// </summary>
+    /// <returns></returns>
+    public TimeSpan HeartBeatTimeOut = TimeSpan.FromSeconds(30); 
 
     /// <summary>
     /// 渲染字体
