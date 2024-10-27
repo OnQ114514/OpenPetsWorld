@@ -39,7 +39,7 @@ namespace OpenPetsWorld
             return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
         }
 
-        public static void MergeValue<T>(this Dictionary<T, int> dictionary, T key, int value) where T : notnull
+        public static void MergeValue<T>(this Dictionary<T, long> dictionary, T key, long value) where T : notnull
         {
             if (!dictionary.TryAdd(key, value))
             {
@@ -109,7 +109,7 @@ namespace OpenPetsWorld
         }
 
         //TODO:使用更好的跳过策略而不是硬编码skipCount
-        public static void ParseString(MessageContext message, int skipCount, out string name, out int count,
+        public static void ParseString(MessageContext message, int skipCount, out string name, out long count,
             out long? target)
         {
             var text = message.GetText()[skipCount..];
@@ -131,7 +131,7 @@ namespace OpenPetsWorld
                 {
                     count = -1;
                 }
-                else if (!int.TryParse(countText, out count))
+                else if (!long.TryParse(countText, out count))
                 {
                     count = 1; // 默认值
                 }

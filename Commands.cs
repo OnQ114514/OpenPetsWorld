@@ -392,21 +392,19 @@ public static class Commands
     /// <param name="eventArgs"></param>
     /// <param name="count"></param>
     /// <returns></returns>
-    private static bool IsCompliant(GroupMessageEventArgs eventArgs, int count)
+    private static bool IsCompliant(GroupMessageEventArgs eventArgs, long count)
     {
-        switch (count)
+        if (count == -1) return true;
+
+        if (count == 0)
         {
-            case -1:
-                return true;
-            case 0:
-                eventArgs.SendAtMessage("格式错误！");
-                return false;
-            //TODO: 自定义最大数量
-            case > 99999:
-                eventArgs.SendAtMessage("数量超出范围！");
-                return false;
-            default:
-                return true;
+            eventArgs.SendAtMessage("格式错误！");
+            return false;
         }
+
+        if (count != PlayConfig.MaxUsedItem) return true;
+        eventArgs.SendAtMessage("数量超出范围！");
+        
+        return false;
     }
 }

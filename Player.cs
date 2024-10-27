@@ -36,7 +36,7 @@ public class Player
     /// <summary>
     /// 背包
     /// </summary>
-    public readonly Dictionary<string, int> Bag = new();
+    public readonly Dictionary<string, long> Bag = new();
 
     /// <summary>
     /// 宠物
@@ -86,7 +86,7 @@ public class Player
         return player;
     }
 
-    public bool Buy(string name, int count)
+    public bool Buy(string name, long count)
     {
         var price = PointShop[name] * count;
         if (Points < price)
@@ -125,7 +125,7 @@ public class Player
         return false;
     }
 
-    public void EnergyAdd(int energy = 10)
+    public void EnergyAdd(long energy)
     {
         if (Pet != null && Pet.Energy < Pet.MaxEnergy)
         {

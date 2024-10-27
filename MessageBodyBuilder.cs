@@ -1,4 +1,3 @@
-using System.Drawing;
 using Manganese.Text;
 using SkiaSharp;
 using Sora.Entities;

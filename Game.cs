@@ -100,7 +100,7 @@ namespace OpenPetsWorld
         public static void EnergyRecovery(object? sender, ElapsedEventArgs e)
         {
             foreach (var player in Players.Values.SelectMany(group => group.Values))
-                player.EnergyAdd();
+                player.EnergyAdd(PlayConfig.EnergyAddCount);
         }
 
         public static Gift? FindGift(string giftName)

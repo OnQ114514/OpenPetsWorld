@@ -16,12 +16,11 @@ public class Instance
     /// 副本名
     /// </summary>
     public string Name;
-
-    //TODO: 添加概率
+    
     /// <summary>
     /// 奖励物品
     /// </summary>
-    public readonly Dictionary<string, int> RewardingItems = [];
+    public readonly List<Reward> Rewards = [];
 
     /// <summary>
     /// 单次奖励积分
@@ -58,7 +57,7 @@ public class Instance
     /// </summary>
     public readonly FItem? NeededItem = null;
 
-    public InstanceResult Challenge(Player player, int count)
+    public InstanceResult Challenge(Player player, long count)
     {
         var result = new InstanceResult();
         
@@ -85,13 +84,13 @@ public class Instance
         pet.Experience += result.Experience = Experience * count;
         player.Points += result.Points = Points * count;
         
-        foreach (var item in RewardingItems)
+        foreach (var reward in from reward in Rewards let get = reward.ProbabilityGet() where get select reward)
         {
-            player.Bag.MergeValue(item.Key, item.Value);
-            result.Items.Add(new FItem()
+            player.Bag.MergeValue(reward.Name, reward.Count);
+            result.Items.Add(new FItem
             {
-                Name = item.Key,
-                Count = item.Value
+                Name = reward.Name,
+                Count = reward.Count
             });
         }
 
@@ -99,13 +98,31 @@ public class Instance
     }
 }
 
+public class Reward
+{
+    public string Name;
+    public long Count;
+    public double Probability = 1;
+
+    public bool ProbabilityGet()
+    {
+        if (Probability >= 1) return true;
+
+        // 生成 0 到 99 之间的随机数  
+        var randomNumber = Program.Random.Next(0, 100);  
+        // 判断生成的随机数是否小于指定的概率  
+        var result = randomNumber < Probability * 100;
+        return result;
+    }
+}
+
 public class InstanceResult
 {
-    public int Code = 0;
-    public long Energy = 0;
-    public long Points = 0;
-    public long Experience = 0;
-    public long Damage = 0;
+    public int Code;
+    public long Energy;
+    public long Points;
+    public long Experience;
+    public long Damage;
     public List<FItem> Items = [];
     //TODO:替换为List<State>
     public string PetState = "正常";

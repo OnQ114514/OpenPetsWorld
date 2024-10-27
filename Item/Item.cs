@@ -65,7 +65,7 @@ public class BaseItem
     /// </summary>
     public bool CanUseToOther = false;
 
-    public virtual bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    public virtual bool UseToOther(GroupMessageEventArgs eventArgs, long count, long target)
     {
         if (CanUseToOther) return true;
         
@@ -73,7 +73,7 @@ public class BaseItem
         return false;
     }
 
-    public virtual bool Use(GroupMessageEventArgs eventArgs, int count)
+    public virtual bool Use(GroupMessageEventArgs eventArgs, long count)
     {
         if (count == 0)
         {
@@ -106,7 +106,7 @@ public class BaseItem
         return true;
     }
 
-    public bool Make(GroupMessageEventArgs receiver, int count)
+    public bool Make(GroupMessageEventArgs receiver, long count)
     {
         if (Formulation == null)
         {
@@ -155,7 +155,7 @@ public class Material : BaseItem
         ItemType = ItemType.Material;
     }
 
-    public override bool Use(GroupMessageEventArgs receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, long count)
     {
         receiver.SendAtMessage("该道具不能直接使用，请更换道具！");
         return false;
@@ -183,7 +183,7 @@ public class Artifact : BaseItem
         ItemType = ItemType.Artifact;
     }
 
-    public override bool Use(GroupMessageEventArgs receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, long count)
     {
         if (!base.Use(receiver, 1)) return false;
         var player = Player.Register(receiver);
@@ -219,7 +219,7 @@ public class Resurrection : BaseItem
         ItemType = ItemType.Resurrection;
     }
 
-    public override bool Use(GroupMessageEventArgs receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, long count)
     {
         if (!base.Use(receiver, count)) return false;
         var pet = Player.Register(receiver).Pet;
@@ -252,7 +252,7 @@ public class Resurrection : BaseItem
         return true;
     }
 
-    public override bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    public override bool UseToOther(GroupMessageEventArgs eventArgs, long count, long target)
     {
         if (!base.UseToOther(eventArgs, count, target)) return false;
 
@@ -275,7 +275,7 @@ public class Recovery : BaseItem
         ItemType = ItemType.Recovery;
     }
 
-    public override bool Use(GroupMessageEventArgs receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, long count)
     {
         if (!base.Use(receiver, count)) return false;
         var pet = Player.Register(receiver).Pet;
@@ -308,7 +308,7 @@ public class Recovery : BaseItem
         return true;
     }
     
-    public override bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    public override bool UseToOther(GroupMessageEventArgs eventArgs, long count, long target)
     {
         if (!base.UseToOther(eventArgs, count, target)) return false;
         
@@ -355,7 +355,7 @@ public class Gain : BaseItem
         ItemType = ItemType.Gain;
     }
 
-    public override bool Use(GroupMessageEventArgs receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, long count)
     {
         if (!base.Use(receiver, count)) return false;
 
@@ -385,7 +385,7 @@ public class Gain : BaseItem
         return true;
     }
     
-    public override bool UseToOther(GroupMessageEventArgs eventArgs, int count, long target)
+    public override bool UseToOther(GroupMessageEventArgs eventArgs, long count, long target)
     {
         if (!base.UseToOther(eventArgs, count, target)) return false;
         
@@ -400,7 +400,7 @@ public class PetItem : BaseItem
 {
     private Pet _pet;
 
-    public override bool Use(GroupMessageEventArgs receiver, int count)
+    public override bool Use(GroupMessageEventArgs receiver, long count)
     {
         var player = Player.Register(receiver);
         if (player.Pet != null) return false;

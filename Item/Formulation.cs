@@ -17,7 +17,7 @@ public class Formulation
 public class FItem
 {
     public string Name;
-    public int Count = 1;
+    public long Count = 1;
 
     public static implicit operator FItem(BaseItem item) => new()
     {

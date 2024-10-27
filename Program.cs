@@ -116,10 +116,9 @@ internal static class Program
         }
 
         ReadData();
-
-        //TODO:支持自定义
+        
         //精力恢复事件
-        Timer timer = new(600000)
+        Timer timer = new(PlayConfig.EnergyAddTime)
         {
             Enabled = true,
             AutoReset = true
@@ -722,15 +721,14 @@ internal static class Program
                 else if (textMessage.StartsWith("宠物侦察"))
                 {
                     if (!HavePet(eventArgs, out var pet)) return;
-
-                    const int energy = 5;
+                    
+                    var energy = PlayConfig.ViewNeededEnergy;
                     var target = GetAtNumber(context.MessageBody);
                     if (target == null) return;
 
 
                     if (pet.Energy < energy)
                     {
-                        //TODO:支持自定义
                         await eventArgs.SendAtMessage($"你的宠物已经精疲力竭了，侦察宠物需要消化{energy}点精力！当前精力剩余{pet.Energy}");
                         return;
                     }
